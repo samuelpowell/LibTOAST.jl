@@ -1,4 +1,6 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
-deps/toast
+deps/toast*
+deps/*.zip
+deps/*.tar.gz
