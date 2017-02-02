@@ -16,14 +16,27 @@ function __init__()
   addHeaderDir(joinpath(_jl_toast_dir, "src", "libfe"); kind = C_System)
   addHeaderDir(joinpath(_jl_toast_dir, "src", "libmath"); kind = C_System)
 
+  # Define header options accroding to library build options
+  defineMacro("TOAST_THREAD")     # Enable threading
+  defineMacro("FDOT")             # Enable flourescence (projection)
+
   # Include headers: felib (this includes all required headers)
-  cxxinclude("felib.h");
+  cxxinclude("mathlib.h")         # Matrices and vectors, tasks and verbosity
+  cxxinclude("felib.h")           # Mesh related functions
+  # cxxinclude("source.h")          # Source and detector profiles
 
   # Import dynamic libraries: libsuperlu, libmath, libfe
   Libdl.dlopen(_jl_toast_libsuperlu)
   Libdl.dlopen(_jl_toast_libmath)
   Libdl.dlopen(_jl_toast_libfe)
+  Libdl.dlopen(_jl_toast_libstoast)
 
 end
+
+# Utilities
+include("util.jl")    # Sparse matrix helpers
+
+# Toast++ object type helpers
+include("Mesh.jl")    # Mesh types
 
 end # module
