@@ -31,6 +31,9 @@ function __init__()
   Libdl.dlopen(_jl_toast_libfe)
   Libdl.dlopen(_jl_toast_libstoast)
 
+  # Initialise Toast++ thread pool
+  @cxx Task_Init(0)
+
 end
 
 # Utilities
