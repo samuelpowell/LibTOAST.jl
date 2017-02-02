@@ -1,0 +1,6 @@
+const _jl_toast_dir = "/Users/spowell/.julia/v0.5/libtoast/deps/toastpp-2.0.1"
+const _jl_toast_libdir =  "/Users/spowell/.julia/v0.5/libtoast/deps/toastpp-2.0.1/darwin64/lib"
+const _jl_toast_libfe = "/Users/spowell/.julia/v0.5/libtoast/deps/toastpp-2.0.1/darwin64/lib/libfe.dylib"
+const _jl_toast_libmath = "/Users/spowell/.julia/v0.5/libtoast/deps/toastpp-2.0.1/darwin64/lib/libmath.dylib"
+const _jl_toast_libstoast = "/Users/spowell/.julia/v0.5/libtoast/deps/toastpp-2.0.1/darwin64/lib/libstoast.dylib"
+const _jl_toast_libsuperlu = "/Users/spowell/.julia/v0.5/libtoast/deps/toastpp-2.0.1/darwin64/lib/libsuperlu.dylib"
