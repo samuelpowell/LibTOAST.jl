@@ -3,7 +3,16 @@
 
 # Imports and exports
 import Base: string, print, show
-export load!, save, ndims, nnodes, nelements, boundingbox, assemble
+
+# Export types
+export Mesh, SystemMatrix
+
+# Export enumerations
+export FF, DD, BNDFF, PFF, PDD, BNDPFF, P, PF, BNDPF
+
+# Export methods
+export delete, string, print, show, sparsity!, load, load!, save,
+  numnodes, numelemes, numdims, boundingbox, fillsize, make!, assemble!, sysmat
 
 # Type definitions
 type Mesh
@@ -22,7 +31,7 @@ type Mesh
 
   # Constructor
   function Mesh()
-    mesh = new((@cxxnew TOAST_Mesh()), "", false);
+    mesh = new((@cxxnew TOAST_Mesh()), false);
     finalizer(mesh, delete)
     return mesh
   end
@@ -41,7 +50,6 @@ type SystemMatrix
     return sysmat
   end
 
-
 end
 
 
@@ -53,7 +61,7 @@ Construct a new mesh given a list of vertices, elements, and element types.
 function Mesh(node::Matrix{Float64}, elem::Matrix{Float64}, eltp::Vector{Float64})
   mesh = Mesh()
   make!(mesh,node,elem,eltp)
-  reutn mesh
+  return mesh
 end
 
 """
@@ -64,7 +72,7 @@ Construct a new mesh from a specified file.
 function Mesh(fn::String)
   mesh = Mesh()
   load!(mesh,fn)
-  reutn mesh
+  return mesh
 end
 
 # Method definitions
@@ -73,13 +81,13 @@ end
 # maxnodes
 
 # Delete the underlying pointer to a Toast++ mesh
-delete(mesh::Mesh) = icxx"""delete mesh.ptr;"""
+delete(mesh::Mesh) = icxx"""delete $(mesh.ptr);"""
 
 # Delete underlying pointer to a Toast++ system matrix
-delete(sysmat::SystemMatrix) = icxx"""delete sysmat.ptr;"""
+delete(sysmat::SystemMatrix) = icxx"""delete $(sysmat.ptr);"""
 
 # String conversion
-string(obj::mesh) = ("")
+string(mesh::Mesh) = ("")
 
 # Print method
 print(io::IO, mesh::Mesh) = print(io, string(mesh))
@@ -105,7 +113,7 @@ function sparsity!(mesh::Mesh)
     $(mesh.ptr)->SparseRowStructure($(pointer(rowptr))[0], $(pointer(colidx))[0], $(pointer(nnzero))[0]);
   """
 
-  nnd = nodecount(mesh)
+  nnd = numnodes(mesh)
 
   info("Number of nodes: ", nnd, ", Number of nonzeros: ", nnzero[1])
 
@@ -115,7 +123,7 @@ function sparsity!(mesh::Mesh)
   mesh.sparsity_colidx = pointer_to_array(colidx[1],nnzero[1],true)
 
   # Store 1-based Julia CSC sparsity pattern
-  mesh.sparsity = CSRsparse(nnd,nnd,mesh.sparsity_rowptr,mesh.sparsity_colidx,ones(nnzero[1]))
+  mesh.sparsity = _CSC(nnd,nnd,mesh.sparsity_rowptr,mesh.sparsity_colidx,ones(nnzero[1]))
 
   return nothing
 
@@ -126,7 +134,7 @@ end
 
 Construct and initialise a Toast++ mesh from a specified file.
 """
-load(fn::String) = load!(Mesh(), filename)
+load(fn::String) = load!(Mesh(), fn)
 
 """
     load!(mesh, filename)
@@ -146,12 +154,12 @@ function load!(mesh::Mesh, fn::String)
 
   # Load the mesh
   icxx"""
-    ifstream ifs($(pointer(filename)));
+    ifstream ifs($(pointer(fn)));
     ifs >> *($(mesh.ptr));
     ifs.close();
   """
 
-  info("Loaded ", stat(filename).size, " bytes from ", fn, ".")
+  info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
 
   # Perform initialisation
   info("Initiliasing mesh.")
@@ -365,9 +373,10 @@ function make!(mesh::Mesh, node, elem, eltp)
 
 end
 
+# The following enumerations are defined in mesh.h
 @enum BilinearIntegrals FF=0 DD=1 BNDFF=12
 @enum BilinearParamIntegrals PFF=2 PDD=3 BNDPFF=4
-@enum LinearParamIntegrals P=0 PF=1 BNDPFF=2
+@enum LinearParamIntegrals P=0 PF=1 BNDPF=2
 
 """
     assemble!(sysmat, mesh, integral)
@@ -415,5 +424,5 @@ end
 
 function sysmat(F::SystemMatrix, mesh::Mesh)
   nnd = numnodes(mesh)
-  CSRsparse(nnd,nnd,mesh.sparsity_rowptr,mesh.sparsity_colidx, @cxx F.ptr->ValPtr())
+  _CSC(nnd,nnd,mesh.sparsity_rowptr,mesh.sparsity_colidx, @cxx F.ptr->ValPtr())
 end
