@@ -365,59 +365,43 @@ function make!(mesh::Mesh, node, elem, eltp)
 
 end
 
-@enum BilinearIntegrals FF=0 DD=1 PFF=2 PDD=3 BNDPFF=4 BNDFF=12
-@enum LinearIntegrals P=0 PF=1 BNDPFF=2
+@enum BilinearIntegrals FF=0 DD=1 BNDFF=12
+@enum BilinearParamIntegrals PFF=2 PDD=3 BNDPFF=4
+@enum LinearParamIntegrals P=0 PF=1 BNDPFF=2
 
-# Does the requested integral require a parameter vector
-function _reqparm(int::BilinearIntegrals)
+"""
+    assemble!(sysmat, mesh, integral)
 
-  if int === PFF || int === PDD || int === BNDPFF
-    return true
-  else
-    return false
-  end
+Assemble the bilinear form over the mesh as specified by integral, and add the
+result to the provided system matrix.
+"""
+function assemble!(sysmat::SystemMatrix,
+                   mesh::Mesh,
+                   integral::BilinearIntegrals)
 
-end
+  icxx"""AddToSysMatrix (*$(mesh.ptr), *$(sysmat.ptr), NULL, $(Cint(integral)));"""
 
-function _reqparm(int::LinearIntegrals)
-
-  if int === P || int === PF || int === BNDPFF
-    return true
-  else
-    return false
-  end
+  return nothing
 
 end
 
 """
-    assemble!(sysmat, mesh, integral, parameter...)
+    assemble!(sysmat, mesh, integral, param)
 
-Assemble the bilinear form specified by integral over the mesh, and add the
-result to the system matrix.
-
-If the integral (sepecified as a member of the BilinearIntegrals) requires a
-parameter, this must be provided as the final argument.
+Assemble the bilinear form over the mesh as specified by integral and associated
+parameter, add the result to the provided system matrix.
 """
-function assemble!(sysmat::SystemMatrix, mesh::Mesh, integral::BilinearIntegrals, parameter...)
+function assemble!(sysmat::SystemMatrix,
+                   mesh::Mesh,
+                   integral::BilinearParamIntegrals,
+                   param::Vector{Float64})
 
+  nprm = length(param)
+  pprm = pointer(param)
   mode = Cint(integral)
-  nnd = numnodes(mesh)
-  values = ones(nnd)
 
-  modeparm = String(integral)
-  prmr = _reqparm(integral)
-
-  if prmr
-    nprm = length(parameter[1])
-    prm = pointer(parameter[1])
-    if nprm != nnd
-      error("Integral ", String(integral), " requires a parameter specified
-        in the nodal basis, but none was provided".)
-    end
-  else
-    nprm = 0
-    pprm = pointer([0.0])
-
+  if nprm != numnodes(mesh)
+    error("Parameter vector length ($nprm) not equal to nodal basis ($(numnodes(mesh))).")
   end
 
   icxx"""
