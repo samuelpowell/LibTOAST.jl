@@ -7,17 +7,17 @@
 Construct a Julia compressed sparse column (CSC) matrix from the row pointer,
 column index and values of an ``m \times n`` compressed sparse row (CSR) matrix.
 """
-function CSRsparse(m,n,rowptr,colidx,values)
+function _CSC(m,n,rowptr,colidx,values)
 
-  valtr = pointer(values)
-  CSRsparse(m,n,rowptr,colidx,values)
+  valptr = pointer(values)
+  _CSC(m,n,rowptr,colidx,valptr)
 
 end
 
 """
 The vector of values can be provided as a pointer.
 """
-function CSRsparse(m,n,rowptr,colidx,values::Ptr)
+function _CSC(m,n,rowptr,colidx,values::Ptr)
 
   # From toastmatlab.cc
   # void CopyMatrix (mxArray **array, const RCompRowMatrix &mat)
