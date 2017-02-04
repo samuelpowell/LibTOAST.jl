@@ -36,10 +36,9 @@ function __init__()
 
 end
 
-# Utilities
-include("util.jl")    # Sparse matrix helpers
-
-# Toast++ object type helpers
-include("Mesh.jl")    # Mesh types
+include("util.jl")            # Utility functions
+include("mesh.jl")            # Mesh types
+include("sysmat.jl")          # System matrices
+include("assembly.jl")        # System matrix assembly
 
 end # module

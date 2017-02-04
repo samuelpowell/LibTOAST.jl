@@ -1,57 +1,41 @@
 # libtoast.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
-# Imports and exports
+# Imports
 import Base: string, print, show
 
 # Export types
-export Mesh, SystemMatrix
-
-# Export enumerations
-export FF, DD, BNDFF, PFF, PDD, BNDPFF, P, PF, BNDPF
+export Mesh
 
 # Export methods
-export delete, string, print, show, sparsity!, load, load!, save,
-  numnodes, numelemes, numdims, boundingbox, fillsize, make!, assemble!, sysmat
+export delete, string, print, show, sparsity!, load, save,
+  numnodes, numelemes, numdims, boundingbox, fullsize
 
 # Type definitions
-type Mesh
+immutable Mesh
 
-  # Pointer to C++ mesh object
   ptr::Cxx.CppPtr
+  rowptr::Array{Cint,1}
+  colidx::Array{Cint,1}
 
-  # Initialisation
-  initialised::Bool
+  function Mesh(ptr::Cxx.CppPtr)
 
-  # Sparsity pattern
-  sparsity
-  sparsity_direct
-  sparsity_rowptr::Array{Int32,1}
-  sparsity_colidx::Array{Int32,1}
+    # Perform initialisation
+    info("Initiliasing mesh.")
+    @cxx ptr->Setup()
 
-  # Constructor
-  function Mesh()
-    mesh = new((@cxxnew TOAST_Mesh()), false);
-    finalizer(mesh, delete)
+    # Compute sparsity pattern
+    info("Calculating sparsity pattern.")
+    rowptr, colidx = sparsity(ptr)
+
+    mesh = new(ptr, rowptr, colidx, sparsity)
+    finalizer(mesh, _mesh_delete)
+
     return mesh
+
   end
 
 end
-
-
-type SystemMatrix
-
-  ptr::Cxx.CppPtr
-
-  function SystemMatrix(mesh)
-    sysmat = new(@cxxnew RCompRowMatrix(numnodes(mesh),numnodes(mesh),
-      pointer(mesh.sparsity_rowptr), pointer(mesh.sparsity_colidx)))
-    finalizer(sysmat, delete)
-    return sysmat
-  end
-
-end
-
 
 """
     Mesh(node, elem, eltp)
@@ -59,9 +43,9 @@ end
 Construct a new mesh given a list of vertices, elements, and element types.
 """
 function Mesh(node::Matrix{Float64}, elem::Matrix{Float64}, eltp::Vector{Float64})
-  mesh = Mesh()
-  make!(mesh,node,elem,eltp)
-  return mesh
+  meshptr = _mesh_new()
+  _make!(meshptr,node,elem,eltp)
+  return Mesh(meshptr)
 end
 
 """
@@ -70,192 +54,42 @@ end
 Construct a new mesh from a specified file.
 """
 function Mesh(fn::String)
-  mesh = Mesh()
-  load!(mesh,fn)
-  return mesh
+  meshptr = _mesh_new()
+  _load!(meshptr,fn)
+  return Mesh(meshptr)
 end
 
-# Method definitions
-# data
-# surf
-# maxnodes
+# Create new mesh pointer
+_mesh_new() = @cxxnew TOAST_Mesh()
 
-# Delete the underlying pointer to a Toast++ mesh
-delete(mesh::Mesh) = icxx"""delete $(mesh.ptr);"""
+# Delete and deallocate mesh pointer
+_mesh_delete(mesh) = icxx"""delete $(mesh.ptr);"""
 
-# Delete underlying pointer to a Toast++ system matrix
-delete(sysmat::SystemMatrix) = icxx"""delete $(sysmat.ptr);"""
-
-# String conversion
-string(mesh::Mesh) = ("")
-
-# Print method
-print(io::IO, mesh::Mesh) = print(io, string(mesh))
-
-# Show method
-show(io::IO, mesh::Mesh) = print(io, mesh)
-
-"""
-    sparsity!(mesh)
-
-Compute and sparsity structure in both Toast++ (CSR) and Julia (CSC) formats
-and store in mesh object.
-"""
-function sparsity!(mesh::Mesh)
+# Compute sparsity structure in zero-based CSR format and 1-based CSC.
+function _sparsity(ptr::Cxx.CppPtr)
 
   rowptr = Ptr{Int32}[0]
   colidx = Ptr{Int32}[0]
   nnzero = Int32[0]
 
-  info("Computing sparsity pattern.")
-
   icxx"""
-    $(mesh.ptr)->SparseRowStructure($(pointer(rowptr))[0], $(pointer(colidx))[0], $(pointer(nnzero))[0]);
+    $(ptr)->SparseRowStructure($(pointer(rowptr))[0], $(pointer(colidx))[0], $(pointer(nnzero))[0]);
   """
 
   nnd = numnodes(mesh)
 
   info("Number of nodes: ", nnd, ", Number of nonzeros: ", nnzero[1])
 
-  # Zero based rowptr and colidx, stored for resuse when building, e.g, the
-  # system matrix
-  mesh.sparsity_rowptr = pointer_to_array(rowptr[1],nnd+1,true)
-  mesh.sparsity_colidx = pointer_to_array(colidx[1],nnzero[1],true)
+  # Zero based rowptr and colidx, for resuse when building a system matrix
+  rowptr = pointer_to_array(rowptr[1],nnd+1,true)
+  colidx = pointer_to_array(colidx[1],nnzero[1],true)
 
-  # Store 1-based Julia CSC sparsity pattern
-  mesh.sparsity = _CSC(nnd,nnd,mesh.sparsity_rowptr,mesh.sparsity_colidx,ones(nnzero[1]))
-
-  return nothing
+  return rowptr, colidx
 
 end
 
-"""
-    load(filename)
-
-Construct and initialise a Toast++ mesh from a specified file.
-"""
-load(fn::String) = load!(Mesh(), fn)
-
-"""
-    load!(mesh, filename)
-
-Construct and initialise a Toast++ mesh from a specified file.
-"""
-function load!(mesh::Mesh, fn::String)
-
-  # TODO: We would like to do something like this:
-  # ifs = @cxx std::ifstream(pointer(filename))
-  # icxx"""$(ifs) >> *$(obj.meshptr);"""
-
-  # Check if file exists
-  if !isfile(fn)
-    error("File not found ", fn)
-  end
-
-  # Load the mesh
-  icxx"""
-    ifstream ifs($(pointer(fn)));
-    ifs >> *($(mesh.ptr));
-    ifs.close();
-  """
-
-  info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
-
-  # Perform initialisation
-  info("Initiliasing mesh.")
-  @cxx mesh.ptr->Setup()
-
-  # Calcualte the sparsity pattern
-  info("Calculating sparsity pattern.")
-  sparsity!(mesh)
-
-  mesh.initialised = true
-
-  return
-
-end
-
-"""
-    save(mesh, filename)
-
-Save an initialised mesh to the specified filename.
-"""
-function save(mesh::Mesh, fn::String)
-
-  # Output the mesh
-  icxx"""
-    ofstream ofs($(pointer(fn)));
-    ofs << *($(mesh.ptr));
-    ofs.close();
-  """
-
-  info("Mesh written to ", fn, ", ", stat(fn).size, "bytes.")
-
-  return nothing
-
-end
-
-"""
-    numnodes(mesh)
-
-Return the number of nodes in the mesh.
-"""
-numnodes(mesh::Mesh) = @cxx (@cxx mesh.ptr->nlist)->Len()
-
-"""
-    numelems(mesh)
-
-Return the number of elements in the mesh.
-"""
-numelems(mesh::Mesh) = @cxx (@cxx mesh.ptr->elist)->Len()
-
-"""
-    numdims(mesh)
-
-Return the number of spatial dimensions of the mesh.
-"""
-numdims(mesh::Mesh) = @cxx mesh.ptr->Dimension()
-
-"""
-    boundingbox(mesh)
-
-Return the bounding box of the mesh in a ``d \times 2`` matrix.
-"""
-function boundingbox(mesh::Mesh)
-
-  dim = numdims(mesh)
-  bb = Array{Float64}(dim,2)
-
-  icxx"""
-    double *jptr = $(pointer(bb));
-
-    Point pmin($dim), pmax($dim);
-    $(mesh.ptr)->BoundingBox(pmin, pmax);
-
-    for(int i=0; i<$dim; i++) {
-      *jptr++ = pmin[i];
-      *jptr++ = pmax[i];
-    }
-  """
-
-  return bb
-
-end
-
-"""
-    size(mesh)
-
-Compute the total area (2D) for volume (3D) of the mesh.
-"""
-fullsize(mesh::Mesh) = @cxx mesh.ptr->FullSize()
-
-"""
-    make!(mesh, node, elem, eltp)
-
-Construct a mesh given a matrix of vertices, elements, and a vector of element
-types.
-"""
-function make!(mesh::Mesh, node, elem, eltp)
+# Build a mesh from a matrix of vertices, elements, and element types
+function _make!(meshptr::Cxx.CppPtr, node, elem, eltp)
 
   jnvtx = size(node,1)
   jnel = size(elem,1)
@@ -273,7 +107,7 @@ function make!(mesh::Mesh, node, elem, eltp)
       double *idx = $(pointer(elem));
       double *etp = $(pointer(eltp));
 
-      Mesh *mesh = $(mesh.ptr);
+      Mesh *mesh = $(meshptr);
 
       // Create node list
       mesh->nlist.New (nvtx);
@@ -363,66 +197,123 @@ function make!(mesh::Mesh, node, elem, eltp)
       mesh->Setup();
     """
 
-  sparsity!(obj)
-
-  obj.initialised = true
-
-  print(obj)
-
   return nothing
 
 end
 
-# The following enumerations are defined in mesh.h
-@enum BilinearIntegrals FF=0 DD=1 BNDFF=12
-@enum BilinearParamIntegrals PFF=2 PDD=3 BNDPFF=4
-@enum LinearParamIntegrals P=0 PF=1 BNDPF=2
+# Method definitions
+# data
+# surf
+# maxnodes
+
+# String conversion
+string(mesh::Mesh) = ("")
+
+# Print method
+print(io::IO, mesh::Mesh) = print(io, string(mesh))
+
+# Show method
+show(io::IO, mesh::Mesh) = print(io, mesh)
 
 """
-    assemble!(sysmat, mesh, integral)
+    load(mesh, filename)
 
-Assemble the bilinear form over the mesh as specified by integral, and add the
-result to the provided system matrix.
+Load a Toast++ mesh from a specified file.
 """
-function assemble!(sysmat::SystemMatrix,
-                   mesh::Mesh,
-                   integral::BilinearIntegrals)
+function load(fn::String)
 
-  icxx"""AddToSysMatrix (*$(mesh.ptr), *$(sysmat.ptr), NULL, $(Cint(integral)));"""
+  # TODO: We would like to do something like this:
+  # ifs = @cxx std::ifstream(pointer(filename))
+  # icxx"""$(ifs) >> *$(obj.meshptr);"""
 
-  return nothing
-
-end
-
-"""
-    assemble!(sysmat, mesh, integral, param)
-
-Assemble the bilinear form over the mesh as specified by integral and associated
-parameter, add the result to the provided system matrix.
-"""
-function assemble!(sysmat::SystemMatrix,
-                   mesh::Mesh,
-                   integral::BilinearParamIntegrals,
-                   param::Vector{Float64})
-
-  nprm = length(param)
-  pprm = pointer(param)
-  mode = Cint(integral)
-
-  if nprm != numnodes(mesh)
-    error("Parameter vector length ($nprm) not equal to nodal basis ($(numnodes(mesh))).")
+  # Check if file exists
+  if !isfile(fn)
+    error("File not found ", fn)
   end
 
+  # Load the mesh
   icxx"""
-    RVector prm($nprm, $pprm, SHALLOW_COPY);
-    AddToSysMatrix (*$(mesh.ptr), *$(sysmat.ptr), &prm, $mode);
+    ifstream ifs($(pointer(fn)));
+    ifs >> *($(mesh.ptr));
+    ifs.close();
   """
+
+  info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
+
+  return
+
+end
+
+"""
+    save(mesh, filename)
+
+Save an initialised mesh to the specified filename.
+"""
+function save(mesh::Mesh, fn::String)
+
+  # Output the mesh
+  icxx"""
+    ofstream ofs($(pointer(fn)));
+    ofs << *($(mesh.ptr));
+    ofs.close();
+  """
+
+  info("Mesh written to ", fn, ", ", stat(fn).size, "bytes.")
 
   return nothing
 
 end
 
-function sysmat(F::SystemMatrix, mesh::Mesh)
-  nnd = numnodes(mesh)
-  _CSC(nnd,nnd,mesh.sparsity_rowptr,mesh.sparsity_colidx, @cxx F.ptr->ValPtr())
+"""
+    numnodes(mesh)
+
+Return the number of nodes in the mesh.
+"""
+numnodes(mesh::Mesh) = @cxx (@cxx mesh.ptr->nlist)->Len()
+
+"""
+    numelems(mesh)
+
+Return the number of elements in the mesh.
+"""
+numelems(mesh::Mesh) = @cxx (@cxx mesh.ptr->elist)->Len()
+
+"""
+    numdims(mesh)
+
+Return the number of spatial dimensions of the mesh.
+"""
+numdims(mesh::Mesh) = @cxx mesh.ptr->Dimension()
+
+"""
+    boundingbox(mesh)
+
+Return the bounding box of the mesh in a ``d \times 2`` matrix.
+"""
+function boundingbox(mesh::Mesh)
+
+  dim = numdims(mesh)
+  bb = Array{Cdouble}(dim,2)
+
+  icxx"""
+    double *jptr = $(pointer(bb));
+
+    Point pmin($dim), pmax($dim);
+    $(mesh.ptr)->BoundingBox(pmin, pmax);
+
+    for(int i=0; i<$dim; i++) {
+      *jptr++ = pmin[i];
+      *jptr++ = pmax[i];
+    }
+  """
+
+  return bb
+
 end
+
+"""
+    size(mesh)
+
+Compute the total area (2D) for volume (3D) of the mesh.
+"""
+fullsize(mesh::Mesh) = @cxx mesh.ptr->FullSize()

@@ -1,23 +1,17 @@
 # libtoast.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
-"""
-    CSRsparse(m,n,rowptr,colidx,values)
+# Construct a one-based Julia CSC matrix from the row pointer, column index
+# and values of an m x n zero-based CSR matrix.
+function _CSR0_to_CSC1(m,n,rowptr,colidx,values)
 
-Construct a Julia compressed sparse column (CSC) matrix from the row pointer,
-column index and values of an ``m \times n`` compressed sparse row (CSR) matrix.
-"""
-function _CSC(m,n,rowptr,colidx,values)
-
-  valptr = pointer(values)
-  _CSC(m,n,rowptr,colidx,valptr)
+  _CSR0_to_CSC1(m,n,rowptr,colidx,pointer(values))
 
 end
 
-"""
-The vector of values can be provided as a pointer.
-"""
-function _CSC(m,n,rowptr,colidx,values::Ptr)
+# Construct a one-based Julia CSC matrix from the row pointer, column index
+# and values of an m x n zero-based CSR matrix.
+function _CSR0_to_CSC1(m,n,rowptr,colidx,values::Ptr)
 
   # From toastmatlab.cc
   # void CopyMatrix (mxArray **array, const RCompRowMatrix &mat)
