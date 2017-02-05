@@ -20,6 +20,11 @@ type Mesh
 
   function Mesh(ptr::Cxx.CppPtr)
 
+    # Remove unused nodes
+    if @cxx ptr->Shrink()
+      warning("Removing unused nodes.");
+    end
+
     # Perform initialisation
     _info("Initiliasing mesh.")
     @cxx ptr->Setup()
@@ -244,7 +249,7 @@ end
 """
     save(mesh, filename)
 
-Save an initialised mesh to the specified filename.
+Save mesh to the specified filename.
 """
 function save(mesh::Mesh, fn::String)
 
