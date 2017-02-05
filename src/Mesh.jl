@@ -288,6 +288,135 @@ Return the number of spatial dimensions of the mesh.
 numdims(mesh::Mesh) = @cxx mesh.ptr->Dimension()
 
 """
+    maxnodes(mesh)
+
+Return the maximum number of nodes in any element of the mesh.
+"""
+function maxnodes(mesh::Mesh)
+
+  meshptr = mesh.ptr
+
+  icxx"""
+    int elen = $meshptr->elen();
+    int mnnd = $meshptr->elist[0]->nNode();
+    for (int i = 0; i < elen; i++)
+      mnnd = ::max (mnnd, $meshptr->elist[i]->nNode());
+    return mnnd;
+  """
+
+end
+
+"""
+  data(mesh)
+
+Return matrices defining the vertices, element connectivity, and element types
+of the specified mesh.
+"""
+function data(mesh::Mesh)
+
+  ndim = numdims(mesh)
+  nvtx = numnodes(mesh)
+  mnnd = maxnodes(mesh)
+  nele = numelems(mesh)
+
+  vtx = Array(Float64, nvtx, ndim)
+  ele = Array(Cint, nele, mnnd)
+  etp = Vector{Cint}(nele)
+
+  vtxptr = pointer(vtx)
+  eleptr = pointer(ele)
+  etpptr = pointer(etp)
+  meshptr = mesh.ptr
+
+  icxx"""
+    int i, j;
+
+    // vertex coordinate list
+    for (i = 0; i < $ndim; i++)
+        for (j = 0; j < $nvtx; j++)
+            *$(vtxptr)++ = $(meshptr)->nlist[j][i];
+
+    // element index list
+    // (1-based; value 0 indicates unused matrix entry)
+    for (i = 0; i < $mnnd; i++)
+        for (j = 0; j < $nele; j++)
+            if (i < $(meshptr)->elist[j]->nNode())
+                *$(eleptr)++ = $(meshptr)->elist[j]->Node[i]+1;
+            else
+                *$(eleptr)++ = 0;
+
+    // element type list
+    for (i = 0; i < $nele; i++)
+        *$(etpptr)++ = $(meshptr)->elist[i]->Type();
+  """
+
+end
+
+"""
+  surface(mesh)
+
+Return matrices defing the certices and element connectivity for the surface of
+the mesh.
+"""
+function surface(mesh::Mesh)
+
+  // mesh_surf: retun vtx, idx, for the surface of a given mesh
+  void mesh_surf(Mesh *mesh, double **vtxptr, int *nbnd, int *dim, int **idxptr, int *nface, int *nnd)
+  {
+
+    int i, j, k;
+
+    int nlen = mesh->nlen();
+    *dim  = mesh->Dimension();
+    *nbnd = mesh->nlist.NumberOf (BND_ANY);
+
+    // vertex coordinate list
+    *vtxptr = (double *) malloc(*nbnd * *dim * sizeof(double));
+    double *vtx = *vtxptr;
+
+    for (i = 0; i < *dim; i++)
+      for (j = 0; j < nlen; j++)
+        if (mesh->nlist[j].isBnd())
+          *vtx++ = mesh->nlist[j][i];
+
+
+      int *bndidx = new int[nlen];
+
+      for (j = k = 0; j < nlen; j++)
+        bndidx[j] = (mesh->nlist[j].isBnd() ? k++ : -1);
+
+      // boundary element index list
+      // note: this currently assumes that all elements contain the
+      // same number of vertices!
+
+      int sd, nn, nd, bn, *bndellist, *bndsdlist;
+      *nnd = 0;
+      *nface = mesh->BoundaryList (&bndellist, &bndsdlist);
+      for (j = 0; j < *nface; j++)
+        *nnd = ::max (*nnd, mesh->elist[bndellist[j]]->nSideNode(bndsdlist[j]));
+
+      *idxptr = (int *) malloc(*nface * *nnd* sizeof(int));
+      int *idx = *idxptr;
+
+      for (i = 0; i < *nnd; i++)
+        for (j = 0; j < *nface; j++) {
+          Element *pel = mesh->elist[bndellist[j]];
+          sd = bndsdlist[j];
+          nn = pel->nSideNode (sd);
+          if (i < nn) {
+            nd = pel->Node[pel->SideNode (sd, i)];
+            bn = bndidx[nd]+1;
+          } else bn = 0;
+          *idx++ = bn;
+        }
+
+      // cleanup
+      delete []bndidx;
+  }
+
+end
+
+"""
     boundingbox(mesh)
 
 Return the bounding box of the mesh in a ``d \times 2`` matrix.
