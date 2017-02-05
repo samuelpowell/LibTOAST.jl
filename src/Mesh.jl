@@ -8,11 +8,11 @@ import Base: string, print, show
 export Mesh
 
 # Export methods
-export delete, string, print, show, sparsity!, load, save,
-  numnodes, numelemes, numdims, boundingbox, fullsize
+export delete, string, print, show, load, save,
+  numnodes, numelems, numdims, boundingbox, fullsize
 
 # Type definitions
-immutable Mesh
+type Mesh
 
   ptr::Cxx.CppPtr
   rowptr::Array{Cint,1}
@@ -21,14 +21,14 @@ immutable Mesh
   function Mesh(ptr::Cxx.CppPtr)
 
     # Perform initialisation
-    info("Initiliasing mesh.")
+    _info("Initiliasing mesh.")
     @cxx ptr->Setup()
 
     # Compute sparsity pattern
-    info("Calculating sparsity pattern.")
-    rowptr, colidx = sparsity(ptr)
+    _info("Calculating sparsity pattern.")
+    rowptr, colidx = _sparsity!(ptr)
 
-    mesh = new(ptr, rowptr, colidx, sparsity)
+    mesh = new(ptr, rowptr, colidx)
     finalizer(mesh, _mesh_delete)
 
     return mesh
@@ -63,10 +63,11 @@ end
 _mesh_new() = @cxxnew TOAST_Mesh()
 
 # Delete and deallocate mesh pointer
-_mesh_delete(mesh) = icxx"""delete $(mesh.ptr);"""
+# TODO: Does Cxx.jl do this for me?
+_mesh_delete(mesh) = finalize(mesh.ptr) # icxx"""delete $(mesh.ptr);"""
 
 # Compute sparsity structure in zero-based CSR format and 1-based CSC.
-function _sparsity(ptr::Cxx.CppPtr)
+function _sparsity!(ptr::Cxx.CppPtr)
 
   rowptr = Ptr{Int32}[0]
   colidx = Ptr{Int32}[0]
@@ -76,13 +77,13 @@ function _sparsity(ptr::Cxx.CppPtr)
     $(ptr)->SparseRowStructure($(pointer(rowptr))[0], $(pointer(colidx))[0], $(pointer(nnzero))[0]);
   """
 
-  nnd = numnodes(mesh)
+  nnd = @cxx (@cxx ptr->nlist)->Len()
 
-  info("Number of nodes: ", nnd, ", Number of nonzeros: ", nnzero[1])
+  _info("Number of vertices: ", nnd, ", number of nonzeros: ", nnzero[1])
 
   # Zero based rowptr and colidx, for resuse when building a system matrix
-  rowptr = pointer_to_array(rowptr[1],nnd+1,true)
-  colidx = pointer_to_array(colidx[1],nnzero[1],true)
+  rowptr = unsafe_wrap(Array,rowptr[1],nnd+1,true)
+  colidx = unsafe_wrap(Array,colidx[1],nnzero[1],true)
 
   return rowptr, colidx
 
@@ -215,12 +216,8 @@ print(io::IO, mesh::Mesh) = print(io, string(mesh))
 # Show method
 show(io::IO, mesh::Mesh) = print(io, mesh)
 
-"""
-    load(mesh, filename)
-
-Load a Toast++ mesh from a specified file.
-"""
-function load(fn::String)
+# Load a mesh from the specified filename
+function _load!(ptr::Cxx.CppPtr, fn::String)
 
   # TODO: We would like to do something like this:
   # ifs = @cxx std::ifstream(pointer(filename))
@@ -234,11 +231,11 @@ function load(fn::String)
   # Load the mesh
   icxx"""
     ifstream ifs($(pointer(fn)));
-    ifs >> *($(mesh.ptr));
+    ifs >> *($(ptr));
     ifs.close();
   """
 
-  info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
+  _info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
 
   return
 
@@ -258,7 +255,7 @@ function save(mesh::Mesh, fn::String)
     ofs.close();
   """
 
-  info("Mesh written to ", fn, ", ", stat(fn).size, "bytes.")
+  _info("Mesh written to ", fn, ", ", stat(fn).size, "bytes.")
 
   return nothing
 

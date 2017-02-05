@@ -5,6 +5,10 @@ module libtoast
 
 using Cxx
 
+# Set verbosity, provide info function
+verbose = true
+_info(s...) = verbose && info(s...)
+
 # Load Toast++ libarary path
 include(joinpath(dirname(@__FILE__), "..", "deps", "path.jl"))
 
