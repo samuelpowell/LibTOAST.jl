@@ -7,7 +7,7 @@ import Base: sparse
 # Export types
 export SystemMatrix
 
-immutable SystemMatrix
+type SystemMatrix
 
   ptr::Cxx.CppPtr
   mesh::Mesh
@@ -21,7 +21,7 @@ immutable SystemMatrix
 
     sysmat = new(matptr, mesh)
 
-    finalizer(sysmat, _delete_sysmat)
+    finalizer(sysmat, _sysmat_delete)
 
     return sysmat
 
@@ -30,11 +30,12 @@ immutable SystemMatrix
 end
 
 # Delete underlying pointer to a Toast++ system matrix
-_sysmat_delete(sysmat::SystemMatrix) = icxx"""delete $(sysmat.ptr);"""
+# TODO: Check if Cxx.jl does this for me
+_sysmat_delete(sysmat::SystemMatrix) = finalize(sysmat.ptr) #icxx"""delete $(sysmat.ptr);"""
 
 function sparse(sysmat::SystemMatrix)
-  nnd = numnodes(mesh)
+  nnd = numnodes(sysmat.mesh)
   rowptr = sysmat.mesh.rowptr
   colidx = sysmat.mesh.colidx
-  _CSR0_to_CSC1(nnd, nnd, rowptr, colidx, @cxx F.ptr->ValPtr())
+  _CSR0_to_CSC1(nnd, nnd, rowptr, colidx, @cxx sysmat.ptr->ValPtr())
 end

@@ -4,6 +4,9 @@
 # Export integral enumerations
 export FF, DD, BNDFF, PFF, PDD, BNDPFF, P, PF, BNDPFF
 
+# Methods
+export assemble, assemble!
+
 # The following enumerations are defined in mesh.h
 @enum BilinearIntegrals FF=0 DD=1 BNDFF=12
 @enum BilinearParamIntegrals PFF=2 PDD=3 BNDPFF=4
@@ -58,9 +61,10 @@ function assemble!(sysmat::SystemMatrix,
   nprm = length(param)
   pprm = pointer(param)
   mode = Cint(int)
+  nnd = numnodes(sysmat.mesh)
 
-  if nprm != numnodes(mesh)
-    error("Parameter vector length ($nprm) not equal to nodal basis ($(numnodes(mesh))).")
+  if nprm != nnd
+    error("Parameter vector length ($nprm) not equal to nodal basis ($nnd).")
   end
 
   icxx"""
