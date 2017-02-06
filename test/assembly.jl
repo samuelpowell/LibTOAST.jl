@@ -13,7 +13,7 @@
   # Check BNDFF integral
   S1 = SystemMatrix(m)
   assemble!(S1, BNDFF)
-  @test norm(sparse(S1),1)-norm(sparse(assemble(m, BNDFF)),1) < 1e-32
+  @test norm(sparse(S1),1)-norm(sparse(assemble(m, BNDFF)),1) < 1e-14
 
   # Check FF integral
   @test_approx_eq sum(sparse(assemble(m, FF))) fullsize(m)
@@ -40,7 +40,7 @@
        sparse(assemble(m, PDD, p2)) +
        sparse(assemble(m, BNDPFF, p3))
 
-  @test norm(sparse(S1),1)-norm(S2,1) < 1e-32
+  @test norm(sparse(S1),1)-norm(S2,1) < 1e-14
 
 
 
