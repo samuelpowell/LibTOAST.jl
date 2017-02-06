@@ -360,24 +360,35 @@ the mesh.
 """
 function surface(mesh::Mesh)
 
+
+
+  idxptr
+  nface
+  nnd
+
+
+  ndim = numdims(mesh)
+  nbnd = icxx"""return $(meshptr)->nlist.NumberOf (BND_ANY);"""
+  nlen = icxx"""return   int nlen = mesh->nlen();
+  vtx = Array(Float64, nbnd, ndim)
+
+  vtxptr = pointer(vtx)
+  meshptr = mesh.ptr
+
+
+
   // mesh_surf: retun vtx, idx, for the surface of a given mesh
   void mesh_surf(Mesh *mesh, double **vtxptr, int *nbnd, int *dim, int **idxptr, int *nface, int *nnd)
   {
 
     int i, j, k;
 
-    int nlen = mesh->nlen();
-    *dim  = mesh->Dimension();
-    *nbnd = mesh->nlist.NumberOf (BND_ANY);
 
     // vertex coordinate list
-    *vtxptr = (double *) malloc(*nbnd * *dim * sizeof(double));
-    double *vtx = *vtxptr;
-
-    for (i = 0; i < *dim; i++)
+    for (i = 0; i < $(ndim); i++)
       for (j = 0; j < nlen; j++)
         if (mesh->nlist[j].isBnd())
-          *vtx++ = mesh->nlist[j][i];
+          *$(vtxptr)++ = mesh->nlist[j][i];
 
 
       int *bndidx = new int[nlen];
