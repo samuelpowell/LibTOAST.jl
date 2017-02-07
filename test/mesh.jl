@@ -15,7 +15,10 @@
     @test boundingbox(m) == [-25.0 -25.0; 25.0 25.0]
     @test fullsize(m) == 1963.0959349692218
     @test maxnodes(m) == 3
+    vtx, ele = surface(m)
   end
+
+
 
 
 
@@ -31,6 +34,7 @@
     @test boundingbox(m) == [-25.0 25.0; 25.0 -25.0; -25.0 25.0]
     @test fullsize(m) == 98056.71142861326
     @test maxnodes(m) == 4
+    vtx, ele = surface(m)
   end
 
 

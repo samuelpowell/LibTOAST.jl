@@ -9,7 +9,7 @@ export Mesh
 
 # Export methods
 export delete, string, print, show, load, save,
-  numnodes, numelems, numdims, boundingbox, fullsize, data, maxnodes
+  numnodes, numelems, numdims, boundingbox, fullsize, data, maxnodes, surface
 
 # Type definitions
 type Mesh
@@ -82,7 +82,7 @@ function _sparsity!(ptr::Cxx.CppPtr)
     $(ptr)->SparseRowStructure($(pointer(rowptr))[0], $(pointer(colidx))[0], $(pointer(nnzero))[0]);
   """
 
-  nnd = @cxx (@cxx ptr->nlist)->Len()
+  nnd = @cxx ptr->nlen()
 
   _info("Number of vertices: ", nnd, ", number of nonzeros: ", nnzero[1])
 
@@ -307,39 +307,42 @@ of the specified mesh.
 """
 function data(mesh::Mesh)
 
-  ndim = numdims(mesh)
-  nvtx = numnodes(mesh)
-  mnnd = maxnodes(mesh)
-  nele = numelems(mesh)
-
-  vtx = Array(Float64, nvtx, ndim)
-  ele = Array(Cint, nele, mnnd)
-  elt = Vector{Cint}(nele)
-
-  vtxptr = pointer(vtx)
-  eleptr = pointer(ele)
-  eltptr = pointer(elt)
   meshptr = mesh.ptr
 
+  ndim = numdims(mesh)
+  nvtx = numnodes(mesh)
+  vtx = Array(Float64, nvtx, ndim)
+  vtxptr = pointer(vtx)
+
   icxx"""
-    int i, j;
-
     // vertex coordinate list
-    for (i = 0; i < $ndim; i++)
-        for (j = 0; j < $nvtx; j++)
+    for (int i = 0; i < $ndim; i++)
+        for (int j = 0; j < $nvtx; j++)
             *$(vtxptr)++ = $(meshptr)->nlist[j][i];
+  """
 
+  mnnd = maxnodes(mesh)
+  nele = numelems(mesh)
+  ele = Array(Cint, nele, mnnd)
+  eleptr = pointer(ele)
+
+  icxx"""
     // element index list
     // (1-based; value 0 indicates unused matrix entry)
-    for (i = 0; i < $mnnd; i++)
-        for (j = 0; j < $nele; j++)
+    for (int i = 0; i < $mnnd; i++)
+        for (int j = 0; j < $nele; j++)
             if (i < $(meshptr)->elist[j]->nNode())
                 *$(eleptr)++ = $(meshptr)->elist[j]->Node[i]+1;
             else
                 *$(eleptr)++ = 0;
+  """
 
+  elt = Vector{Cint}(nele)
+  eltptr = pointer(elt)
+
+  icxx"""
     // element type list
-    for (i = 0; i < $nele; i++)
+    for (int i = 0; i < $nele; i++)
         *$(eltptr)++ = $(meshptr)->elist[i]->Type();
   """
 
@@ -347,6 +350,77 @@ function data(mesh::Mesh)
 
 end
 
+
+"""
+    surface(mesh)
+
+Extract vertices and element connectivity of the surface of the mesh.
+"""
+function surface(mesh::Mesh)
+
+  meshptr = mesh.ptr
+
+  nlen = numnodes(mesh)
+  ndim = numdims(mesh)
+  nbnd = icxx"""$(meshptr)->nlist.NumberOf(BND_ANY);"""
+
+  vtx = Array(Float64, nbnd, ndim)
+  vtxptr = pointer(vtx)
+
+  icxx"""
+    for (int i = 0; i < $(ndim); i++)
+      for (int j = 0; j < $(nlen); j++)
+        if ($(meshptr)->nlist[j].isBnd())
+          *$(vtxptr)++ = $(meshptr)->nlist[j][i];
+  """
+
+  bndidx = Array(Cint, nlen)
+  bndidxptr = pointer(bndidx)
+
+  flen = Vector{Cint}(2)
+  nndptr = pointer(flen,1)
+  nfaceptr = pointer(flen,2)
+
+  icxx"""
+    int  *bndellist, *bndsdlist;
+
+    for (int j = 0, k = 0; j < $(nlen); j++)
+      $(bndidxptr)[j] = ($(meshptr)->nlist[j].isBnd() ? k++ : -1);
+
+    // NB: This assumes all elements contain the same number of vertices
+    *$(nndptr) = 0;
+    *$(nfaceptr) = $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
+    for (int j = 0; j < *$(nfaceptr); j++)
+      *$(nndptr) = ::max (*$(nndptr), $(meshptr)->elist[bndellist[j]]->nSideNode(bndsdlist[j]));
+
+    delete[] bndellist;
+    delete[] bndsdlist;
+  """
+
+  idx = Array(Cint, flen[1], flen[2])
+  idxptr = pointer(idx)
+
+  icxx"""
+    int sd, nn, nd, bn, *bndellist, *bndsdlist;
+
+    $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
+
+    for (int i = 0; i < *$(nndptr); i++)
+      for (int j = 0; j < *$(nfaceptr); j++) {
+        Element *pel = $(meshptr)->elist[bndellist[j]];
+        sd = bndsdlist[j];
+        nn = pel->nSideNode (sd);
+        if (i < nn) {
+          nd = pel->Node[pel->SideNode (sd, i)];
+          bn = $(bndidxptr)[nd]+1;
+        } else bn = 0;
+        *$(idxptr)++ = bn;
+      }
+  """
+
+  return vtx, idx
+
+end
 
 """
     boundingbox(mesh)
