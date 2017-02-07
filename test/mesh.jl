@@ -16,10 +16,9 @@
     @test fullsize(m) == 1963.0959349692218
     @test maxnodes(m) == 3
     vtx, ele = surface(m)
+    @test vtx[10,:] == [19.7003,15.3915]
+    @test ele[1:5] == [90,135,89,164,88]
   end
-
-
-
 
 
   # Load 3D .msh file from disk and create from vertices, elements
@@ -35,6 +34,8 @@
     @test fullsize(m) == 98056.71142861326
     @test maxnodes(m) == 4
     vtx, ele = surface(m)
+    @test vtx[10,:] == [-1.29504,6.49008,25.0]
+    @test ele[1:5] == [ 2791,1429,3014,2552,124]
   end
 
 
