@@ -4,3 +4,4 @@
 deps/toast*
 deps/*.zip
 deps/*.tar.gz
+deps/path.jl
