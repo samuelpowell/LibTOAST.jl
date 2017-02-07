@@ -1,4 +1,4 @@
-# libtoast.jl: interface to the TOAST++ library
+# TOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
 # Construct a one-based Julia CSC matrix from the row pointer, column index

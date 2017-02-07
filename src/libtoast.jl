@@ -1,7 +1,7 @@
-# libtoast.jl: interface to the TOAST++ library
+# TOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
-module libtoast
+module TOAST
 
 using Cxx
 
