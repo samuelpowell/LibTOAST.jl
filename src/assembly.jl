@@ -61,7 +61,7 @@ function assemble!(sysmat::SystemMatrix,
   nprm = length(param)
   pprm = pointer(param)
   mode = Cint(int)
-  nnd = numnodes(sysmat.mesh)
+  nnd = nodecount(sysmat.mesh)
 
   if nprm != nnd
     error("Parameter vector length ($nprm) not equal to nodal basis ($nnd).")

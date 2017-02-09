@@ -23,9 +23,9 @@ type PixelBasis <: Raster
   #   gdim = 2*bdim
   #   bb = boundingbobx(mesh)
   #
-     ptr = @cxxnew Raster_Pixel
+  #   ptr = @cxxnew Raster_Pixel
   #   icxx"""$(ptr) = Raster_Pixel ($(pointer(bdim)), $(pointer(gdim)), mesh.ptr, $(pointer(bb)));"""
-     raster = new(ptr, mesh)
+  #   raster = new(ptr, mesh)
   #   finalizer(raster, _raster_delete)
   #
   #   return raster

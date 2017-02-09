@@ -9,9 +9,9 @@
   mesh2 = Mesh(vtx,ele,elt)
 
   for m in [mesh1 mesh2]
-    @test numnodes(m) == 3511
-    @test numelems(m) == 6840
-    @test numdims(m) == 2
+    @test nodecount(m) == 3511
+    @test elemcount(m) == 6840
+    @test dimensions(m) == 2
     @test boundingbox(m) == [-25.0 -25.0; 25.0 25.0]
     @test fullsize(m) == 1963.0959349692218
     @test maxnodes(m) == 3
@@ -27,9 +27,9 @@
   mesh2 = Mesh(vtx,ele,elt)
 
   for m in [mesh1 mesh2]
-    @test numnodes(m) == 27084
-    @test numelems(m) == 141702
-    @test numdims(m) == 3
+    @test nodecount(m) == 27084
+    @test elemcount(m) == 141702
+    @test dimensions(m) == 3
     @test boundingbox(m) == [-25.0 25.0; 25.0 -25.0; -25.0 25.0]
     @test fullsize(m) == 98056.71142861326
     @test maxnodes(m) == 4
