@@ -100,38 +100,3 @@ nlen(RasterMap::RasterMap) = nodecount(RasterMap.mesh)
 slen(RasterMap::RasterMap) = @cxx RasterMap.ptr->SLen()
 blen(RasterMap::RasterMap) = @cxx RasterMap.ptr->BLen()
 glen(RasterMap::RasterMap) = @cxx RasterMap.ptr->GLen()
-
-
-# abstract RasterMapL2
-#
-# type PixelMapL2 <: RasterMapL2
-#
-#   ptr::Cxx.CppPtr
-#   mesh::Mesh
-#
-#   function PixelMapL2(mesh::Mesh, bdim::Vector{T}; tol=1e-5)
-#
-#   end
-#
-# end
-#
-# _rasterL2_new
-#
-# _rasterL2_delete
-
-
-#
-#
-# function map(r::Raster, v::Raster, ::rbasis)
-#   ovec = vec
-#   map!(r::Rater, v::Raster, o::Raster)
-# end
-#
-# function map!(r::Raster, v::Raster, ::rbasis)
-#   icxx"""
-#     RVector iprm(ilen, ivec, SHALLOW_COPY);
-#     RVector oprm(olen, ovec, SHALLOW_COPY);
-#     raster->Map_MeshToBasis(iprm, oprm);
-#   """
-# end
-#

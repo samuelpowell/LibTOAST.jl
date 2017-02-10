@@ -19,7 +19,7 @@
   @test_approx_eq sum(sparse(assemble(m, FF))) fullsize(m)
 
   # Check DD integral
-  @test_skip sum(sparse(assemble(m, DD))) < 1e-12
+  @test_broken sum(sparse(assemble(m, DD))) < 1e-12
 
   # Check we can add to system matrices in place
   assemble!(S1, DD)
