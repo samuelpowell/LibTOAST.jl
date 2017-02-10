@@ -7,4 +7,6 @@ meshdir_3D = joinpath(TOAST._jl_toast_dir, "test", "3D", "meshes")
 
 include("mesh.jl")
 include("sysmat.jl")
+
+include("rastermap.jl")
 include("assembly.jl")

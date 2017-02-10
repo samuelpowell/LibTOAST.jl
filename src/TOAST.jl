@@ -46,6 +46,6 @@ include("util.jl")            # Utility functions
 include("mesh.jl")            # Mesh types
 include("sysmat.jl")          # System matrices
 include("assembly.jl")        # System matrix assembly
-include("raster.jl")
+include("rastermap.jl")       # Raster mapping
 
 end # module

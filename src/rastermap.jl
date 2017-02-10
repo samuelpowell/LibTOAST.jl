@@ -21,7 +21,6 @@ type PixelMap <: RasterMap
 
   function PixelMap{N}(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2)
     rasterptr = _rastermap_new(mesh, Pixel, bdim, gscale)
-    println(rasterptr)
     pixelmap = new(rasterptr, mesh)
     finalizer(pixelmap, _raster_delete)
     return pixelmap
@@ -38,7 +37,7 @@ function _rastermap_new{N}(mesh::Mesh,
                            blobrad::Float64 = 1.0)
 
   bdimarr = [Cint(i) for i in bdim]
-  gdimarr = 2*bdimarr
+  gdimarr = gscale*bdimarr
   dim = dimensions(mesh)
   assert(length(bdimarr)==dim)
 
