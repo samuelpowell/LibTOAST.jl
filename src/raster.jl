@@ -5,79 +5,120 @@
 import Base: string, print, show
 
 # Export types
-export PixelRaster
+export RasterMap, PixelMap
 
 # Export methods
-export map, gradient
+export nlen, glen, blen, slen, map, gradient
 
-@enum RasterShapes Pixel CubicPixel GaussBlob BesselBlob HanningBlob RampBlob SplineBlob
+abstract RasterMap
 
-# Type definitions
-type Raster{S<:RasterShapes}
+@enum RasterBases Pixel CubicPixel GaussBlob BesselBlob HanningBlob RampBlob SplineBlob
+
+type PixelMap <: RasterMap
 
   ptr::Cxx.CppPtr
   mesh::Mesh
 
-  function Raster{T<:Integer}(shape::RasterShapes, mesh::Mesh, rdim::Vector{T}; gscale=2)
-
-    dim = dimensions(mesh)
-    assert(length(rdim)==dim)
-    meshptr = mesh.ptr
-    rdimptr = pointer(rdim)
-
-    ptr = icxx"""
-
-      RDenseMatrix *bb = 0;
-
-      IVector bdim($(dim));
-      for (int i = 0; i < $(dim); i++)
-          bdim[i] = $(rdimptr)[i];
-
-      IVector gdim($(dim));
-      for (int i=0; i < $(dim); i++)
-          gdim[i] = $(gscale)*bdim[i];
-
-      Raster *raster;
-
-      switch($(Int(shape))) {
-        case 1:
-          raster = new Raster_CubicPixel (bdim, gdim, mesh, bb);
-          break;
-        case 2:
-          raster = new Raster_GaussBlob (bdim, gdim, mesh, blobarg, blobrad, bb);
-          break;
-        case 3:
-          raster = new Raster_BesselBlob (bdim, gdim, mesh, blobarg, blobrad, bb);
-          break;
-        case 4:
-          raster = new Raster_HanningBlob (bdim, gdim, mesh, blobrad, bb);
-          break;
-        case 5:
-          raster = new Raster_RampBlob (bdim, gdim, mesh, blobrad, bb);
-          break;
-        case 6:
-          raster = new Raster_SplineBlob (bdim, gdim, mesh, blobrad, bb);
-          break;
-      }
-
-      return raster;
-
-    """
-    raster = new{shape}(ptr, mesh)
-    finalizer(raster, _raster_delete)
-
-    return raster
-
+  function PixelMap{N}(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2)
+    rasterptr = _rastermap_new(mesh, Pixel, bdim, gscale)
+    println(rasterptr)
+    pixelmap = new(rasterptr, mesh)
+    finalizer(pixelmap, _raster_delete)
+    return pixelmap
   end
 
 end
 
-_raster_delete(raster::Raster) = finalize(raster.ptr);
+# Create and initialise a new basis mapper
+function _rastermap_new{N}(mesh::Mesh,
+                           basis::RasterBases,
+                           bdim::NTuple{N,Integer},
+                           gscale::Integer;
+                           blobarg::Float64 = 1.0,
+                           blobrad::Float64 = 1.0)
 
-nlen(raster::Raster) = nodecount(raster.mesh)
-slen(raster::Raster) = @cxx raster.ptr->SLen()
-blen(raster::Raster) = @cxx raster.ptr->Blen()
-glen(raster::Raster) = @cxx raster.ptr->Glen()
+  bdimarr = [Cint(i) for i in bdim]
+  gdimarr = 2*bdimarr
+  dim = dimensions(mesh)
+  assert(length(bdimarr)==dim)
+
+  meshptr = mesh.ptr
+  bdimptr = pointer(bdimarr)
+  gdimptr = pointer(gdimarr)
+
+  basiscode = Int(basis)
+
+  ptr = icxx"""
+
+    RDenseMatrix *bb = 0;
+
+    IVector bdim($dim);
+    for (int i = 0; i < $dim; i++)
+        bdim[i] = $(bdimptr)[i];
+
+    IVector gdim($(dim));
+    for (int i=0; i < $(dim); i++)
+        gdim[i] = $(gdimptr)[i];
+
+    Raster *raster = 0;
+
+    switch($basiscode) {
+      case 0:
+        raster = new Raster_Pixel (bdim, gdim, $meshptr, bb);
+        break;
+      case 1:
+        raster = new Raster_CubicPixel (bdim, gdim, $meshptr, bb);
+        break;
+      case 2:
+        raster = new Raster_GaussBlob (bdim, gdim, $meshptr, $blobarg, $blobrad, bb);
+        break;
+      case 3:
+        raster = new Raster_BesselBlob (bdim, gdim, $meshptr, $blobarg, $blobrad, bb);
+        break;
+      case 4:
+        raster = new Raster_HanningBlob (bdim, gdim, $meshptr, $blobrad, bb);
+        break;
+      case 5:
+        raster = new Raster_RampBlob (bdim, gdim, $meshptr, $blobrad, bb);
+        break;
+      case 6:
+        raster = new Raster_SplineBlob (bdim, gdim, $meshptr, $blobrad, bb);
+        break;
+    }
+
+    return raster;
+  """
+
+  assert(ptr != Ptr{Void}(0x0000000000000000))
+
+  return ptr;
+
+end
+
+_raster_delete(RasterMap::RasterMap) = finalize(RasterMap.ptr)
+
+nlen(RasterMap::RasterMap) = nodecount(RasterMap.mesh)
+slen(RasterMap::RasterMap) = @cxx RasterMap.ptr->SLen()
+blen(RasterMap::RasterMap) = @cxx RasterMap.ptr->BLen()
+glen(RasterMap::RasterMap) = @cxx RasterMap.ptr->GLen()
+
+
+# abstract RasterMapL2
+#
+# type PixelMapL2 <: RasterMapL2
+#
+#   ptr::Cxx.CppPtr
+#   mesh::Mesh
+#
+#   function PixelMapL2(mesh::Mesh, bdim::Vector{T}; tol=1e-5)
+#
+#   end
+#
+# end
+#
+# _rasterL2_new
+#
+# _rasterL2_delete
 
 
 #
