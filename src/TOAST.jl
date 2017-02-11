@@ -47,5 +47,6 @@ include("mesh.jl")            # Mesh types
 include("sysmat.jl")          # System matrices
 include("assembly.jl")        # System matrix assembly
 include("rastermap.jl")       # Raster mapping
+include("coefftypes.jl")      # Coefficients
 
 end # module
