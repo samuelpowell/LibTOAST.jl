@@ -50,8 +50,15 @@ type SolutionCoeff <: RasterCoeffTypes
   end
 end
 
-SolutionCoeff(rmap::RasterMap) = SolutionCoeff(rmap, Vector{Float64}(slen(rmap)))
 size(coeff::SolutionCoeff) = (length(coeff.data),)
+
+function SolutionCoeff(rmap::RasterMap, ci::NodalCoeff)
+  co = SolutionCoeff(rmap)
+  map!(co,ci)
+  return co
+end
+
+SolutionCoeff(rmap::RasterMap) = SolutionCoeff(rmap, Vector{Float64}(slen(rmap)))
 
 # Raster coefficients represent a function expressed in the rasterised basis,
 # which is defined over a square or cuboid redion, and may include superfluous
@@ -65,8 +72,15 @@ type RasterCoeff <: RasterCoeffTypes
   end
 end
 
-RasterCoeff(rmap::RasterMap) = RasterCoeff(rmap, Vector{Float64}(blen(rmap)))
 size(coeff::RasterCoeff) = (length(coeff.data),)
+
+function RasterCoeff(rmap::RasterMap, ci::NodalCoeff)
+  co = RasterCoeff(rmap)
+  map!(co,ci)
+  return co
+end
+
+RasterCoeff(rmap::RasterMap) = RasterCoeff(rmap, Vector{Float64}(blen(rmap)))
 
 # Intermediate coefficients represent a function expressed in a higher resolution
 # version of the raster basis, and may include superfluous elements which are
@@ -80,8 +94,15 @@ type IntermediateCoeff <: RasterCoeffTypes
   end
 end
 
-IntermediateCoeff(rmap::RasterMap) = IntermediateCoeff(rmap, Vector{Float64}(glen(rmap)))
 size(coeff::IntermediateCoeff) = (length(coeff.data),)
+
+function IntermediateCoeff(rmap::RasterMap, ci::NodalCoeff)
+  co = IntermediateCoeff(rmap)
+  map!(co,ci)
+  return co
+end
+
+IntermediateCoeff(rmap::RasterMap) = IntermediateCoeff(rmap, Vector{Float64}(glen(rmap)))
 
 #
 # Coefficient mapping (and construction)
@@ -104,6 +125,7 @@ function convert{T<:RasterCoeffTypes}(::Type{RasterCoeff}, ci::T)
   map!(co,ci)
   return co
 end
+
 
 map!(co::RasterCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rmap, _nb)
 map!(co::RasterCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rmap, _sb)
