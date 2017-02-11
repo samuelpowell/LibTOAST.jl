@@ -14,6 +14,13 @@ abstract RasterMap
 
 @enum RasterBases Pixel CubicPixel GaussBlob BesselBlob HanningBlob RampBlob SplineBlob
 
+"""
+    PixelMap(mesh, dims; gscale=2)
+
+Map from nodal coefficients to a rasterised grid of pixels of specified
+dimension using linear interpolation via an intermediate grid containing an
+integer multiple, gscale, of pixels.
+"""
 type PixelMap <: RasterMap
 
   ptr::Cxx.CppPtr
@@ -94,9 +101,35 @@ function _rastermap_new{N}(mesh::Mesh,
 
 end
 
+# Delete a raster map
 _raster_delete(RasterMap::RasterMap) = finalize(RasterMap.ptr)
 
+"""
+    nlen(rastermap)
+
+Return the number of nodal coefficients in the associated mesh basis.
+"""
 nlen(RasterMap::RasterMap) = nodecount(RasterMap.mesh)
+
+"""
+    slen(rastermap)
+
+Return the number of coefficients in the raster solution basis, which does
+not include raster points outside of the support of the underlying mesh.
+"""
 slen(RasterMap::RasterMap) = @cxx RasterMap.ptr->SLen()
+
+"""
+    blen(rastermap)
+
+Return the number of coefficients in the raster.
+"""
 blen(RasterMap::RasterMap) = @cxx RasterMap.ptr->BLen()
+
+"""
+    glen(rastermap)
+
+Return the number of coefficients in the raster intermediate basis, which is
+used to map between bases.
+"""
 glen(RasterMap::RasterMap) = @cxx RasterMap.ptr->GLen()
