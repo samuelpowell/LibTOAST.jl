@@ -1,8 +1,10 @@
 # TOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
+# TODO: Coefficients are type unstable due to abstract RasterMap member
+
 # Import
-import Base: convert, size, linearindexing, getindex, setindex!
+import Base: convert, size, linearindexing, getindex, setindex!, zero
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -47,7 +49,7 @@ type SolutionCoeff <: RasterCoeffTypes
 end
 
 SolutionCoeff(rmap::RasterMap) = SolutionCoeff(rmap, Vector{Float64}(slen(rmap)))
-size(coeff::SolutionCoeff) = (slen(coeff.rmap),)
+size(coeff::SolutionCoeff) = (length(coeff.data),)
 
 # Raster coefficients represent a function expressed in the rasterised basis,
 # which is defined over a square or cuboid redion, and may include superfluous
@@ -62,7 +64,7 @@ type RasterCoeff <: RasterCoeffTypes
 end
 
 RasterCoeff(rmap::RasterMap) = RasterCoeff(rmap, Vector{Float64}(blen(rmap)))
-size(coeff::RasterCoeff) = (blen(coeff.rmap),)
+size(coeff::RasterCoeff) = (length(coeff.data),)
 
 # Intermediate coefficients represent a function expressed in a higher resolution
 # version of the raster basis, and may include superfluous elements which are
@@ -77,7 +79,7 @@ type IntermediateCoeff <: RasterCoeffTypes
 end
 
 IntermediateCoeff(rmap::RasterMap) = IntermediateCoeff(rmap, Vector{Float64}(glen(rmap)))
-size(coeff::IntermediateCoeff) = (glen(coeff.rmap),)
+size(coeff::IntermediateCoeff) = (length(coeff.data),)
 
 #
 # Coefficient mapping (and construction)
