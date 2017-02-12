@@ -115,9 +115,9 @@ function convert{T<:RasterCoeffTypes}(::Type{NodalCoeff}, ci::T)
   return co
 end
 
-map!(co::NodalCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rmap, _ns)
-map!(co::NodalCoeff, ci::RasterCoeff) = _map!(co.data, ci.data, ci.rmap, _nb)
-map!(co::NodalCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rmap, _ng)
+map!(co::NodalCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rmap, _sn)
+map!(co::NodalCoeff, ci::RasterCoeff) = _map!(co.data, ci.data, ci.rmap, _bn)
+map!(co::NodalCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rmap, _gn)
 
 # Convert everything to raster coefficients
 function convert{T<:RasterCoeffTypes}(::Type{RasterCoeff}, ci::T)
