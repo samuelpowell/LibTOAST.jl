@@ -27,9 +27,9 @@
   @test norm(sparse(S1),1)-norm(sparse(S2),1) < 1e-14
 
   # Check we can assemble with parameters
-  p1 = rand(numnodes(m))
-  p2 = rand(numnodes(m))
-  p3 = rand(numnodes(m))
+  p1 = rand(nodecount(m))
+  p2 = rand(nodecount(m))
+  p3 = rand(nodecount(m))
 
   S1 = SystemMatrix(m)
   assemble!(S1, PFF, p1)

@@ -9,7 +9,7 @@ export Mesh
 
 # Export methods
 export delete, string, print, show, load, save,
-  numnodes, numelems, numdims, boundingbox, fullsize, data, maxnodes, surface
+  nodecount, elemcount, dimensions, boundingbox, fullsize, data, maxnodes, surface
 
 # Type definitions
 type Mesh
@@ -258,25 +258,25 @@ function save(mesh::Mesh, fn::String)
 end
 
 """
-    numnodes(mesh)
+    nodecount(mesh)
 
 Return the number of nodes in the mesh.
 """
-numnodes(mesh::Mesh) = @cxx mesh.ptr->nlen()
+nodecount(mesh::Mesh) = @cxx mesh.ptr->nlen()
 
 """
-    numelems(mesh)
+    elemcount(mesh)
 
 Return the number of elements in the mesh.
 """
-numelems(mesh::Mesh) = @cxx mesh.ptr->elen()
+elemcount(mesh::Mesh) = @cxx mesh.ptr->elen()
 
 """
-    numdims(mesh)
+    dimensions(mesh)
 
 Return the number of spatial dimensions of the mesh.
 """
-numdims(mesh::Mesh) = @cxx mesh.ptr->Dimension()
+dimensions(mesh::Mesh) = @cxx mesh.ptr->Dimension()
 
 """
     maxnodes(mesh)
@@ -309,8 +309,8 @@ function data(mesh::Mesh)
 
   meshptr = mesh.ptr
 
-  ndim = numdims(mesh)
-  nvtx = numnodes(mesh)
+  ndim = dimensions(mesh)
+  nvtx = nodecount(mesh)
   vtx = Array(Float64, nvtx, ndim)
   vtxptr = pointer(vtx)
 
@@ -322,7 +322,7 @@ function data(mesh::Mesh)
   """
 
   mnnd = maxnodes(mesh)
-  nele = numelems(mesh)
+  nele = elemcount(mesh)
   ele = Array(Cint, nele, mnnd)
   eleptr = pointer(ele)
 
@@ -360,8 +360,8 @@ function surface(mesh::Mesh)
 
   meshptr = mesh.ptr
 
-  nlen = numnodes(mesh)
-  ndim = numdims(mesh)
+  nlen = nodecount(mesh)
+  ndim = dimensions(mesh)
   nbnd = icxx"""$(meshptr)->nlist.NumberOf(BND_ANY);"""
 
   vtx = Array(Float64, nbnd, ndim)
@@ -429,7 +429,7 @@ Return the bounding box of the mesh in a ``d \times 2`` matrix.
 """
 function boundingbox(mesh::Mesh)
 
-  dim = numdims(mesh)
+  dim = dimensions(mesh)
   bb = Array{Cdouble}(dim,2)
 
   icxx"""

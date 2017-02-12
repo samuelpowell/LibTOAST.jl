@@ -19,6 +19,7 @@ function __init__()
   addHeaderDir(joinpath(_jl_toast_dir, "include"); kind = C_System)
   addHeaderDir(joinpath(_jl_toast_dir, "src", "libfe"); kind = C_System)
   addHeaderDir(joinpath(_jl_toast_dir, "src", "libmath"); kind = C_System)
+  addHeaderDir(joinpath(_jl_toast_dir, "src", "libstoast"); kind = C_System)
 
   # Define header options accroding to library build options
   defineMacro("TOAST_THREAD")     # Enable threading
@@ -27,6 +28,7 @@ function __init__()
   # Include headers: felib (this includes all required headers)
   cxxinclude("mathlib.h")         # Matrices and vectors, tasks and verbosity
   cxxinclude("felib.h")           # Mesh related functions
+  cxxinclude("stoastlib.h")
   # cxxinclude("source.h")          # Source and detector profiles
 
   # Import dynamic libraries: libsuperlu, libmath, libfe
@@ -44,5 +46,7 @@ include("util.jl")            # Utility functions
 include("mesh.jl")            # Mesh types
 include("sysmat.jl")          # System matrices
 include("assembly.jl")        # System matrix assembly
+include("rastermap.jl")       # Raster mapping
+include("coefftypes.jl")      # Coefficients
 
 end # module

@@ -14,7 +14,7 @@ type SystemMatrix
 
   function SystemMatrix(mesh)
 
-    nnd = numnodes(mesh)
+    nnd = nodecount(mesh)
     rowptr = mesh.rowptr
     colidx = mesh.colidx
     matptr = @cxxnew RCompRowMatrix(nnd, nnd, pointer(rowptr), pointer(colidx))
@@ -29,13 +29,17 @@ type SystemMatrix
 
 end
 
+ncols(S::SystemMatrix) = @cxx S.ptr->nCols()
+nrows(S::SystemMatrix) = @cxx S.ptr->nRows()
+valptr(S::SystemMatrix) = @cxx S.ptr->ValPtr()
+
 # Delete underlying pointer to a Toast++ system matrix
 # TODO: Check if Cxx.jl does this for me
 _sysmat_delete(sysmat::SystemMatrix) = finalize(sysmat.ptr) #icxx"""delete $(sysmat.ptr);"""
 
 function sparse(sysmat::SystemMatrix)
-  nnd = numnodes(sysmat.mesh)
+  nnd = nodecount(sysmat.mesh)
   rowptr = sysmat.mesh.rowptr
   colidx = sysmat.mesh.colidx
-  _CSR0_to_CSC1(nnd, nnd, rowptr, colidx, @cxx sysmat.ptr->ValPtr())
+  _CSR0_to_CSC1(nnd, nnd, rowptr, colidx, valptr(sysmat))
 end
