@@ -48,5 +48,6 @@ include("sysmat.jl")          # System matrices
 include("assembly.jl")        # System matrix assembly
 include("rastermap.jl")       # Raster mapping
 include("coefftypes.jl")      # Coefficients
+include("regularisation.jl")           # Regularisation
 
 end # module
