@@ -7,7 +7,7 @@
 export Regul, RegulTK0, RegulTK1, RegulTV, RegulPM
 
 # Export methods
-export value, gradient, hessian
+export val, grad, hess
 
 abstract Regul
 
@@ -16,7 +16,7 @@ type RegulTK0 <: Regul
   ptr::Cxx.CppPtr
   rmap::RasterMap
 
-  function RegulTK0(x0::RasterCoeff)
+  function RegulTK0(x0::SolutionCoeff)
 
     rmap = x0.rmap
     xptr = pointer(x0.data)
@@ -41,7 +41,7 @@ type RegulTK1 <: Regul
   ptr::Cxx.CppPtr
   rmap::RasterMap
 
-  function RegulTK1(x0::RasterCoeff)
+  function RegulTK1(x0::SolutionCoeff)
 
     rmap = x0.rmap
     rptr = rmap.ptr
@@ -68,7 +68,7 @@ type RegulTV <: Regul
   ptr::Cxx.CppPtr
   rmap::RasterMap
 
-  function RegulTV(x0::RasterCoeff, β::Float64)
+  function RegulTV(x0::SolutionCoeff, β::Float64)
 
     rmap = x0.rmap
     rptr = rmap.ptr
@@ -89,12 +89,18 @@ type RegulTV <: Regul
 
 end
 
+function RegulTV(x0::SolutionCoeff)
+  info("Using default TV β = 1.0")
+  return RegulTV(x0, 1.0)
+end
+
+
 type RegulPM <: Regul
 
   ptr::Cxx.CppPtr
   rmap::RasterMap
 
-  function RegulPM(x0::RasterCoeff, T::Float64)
+  function RegulPM(x0::SolutionCoeff, T::Float64)
 
     rmap = x0.rmap
     rptr = rmap.ptr
@@ -115,11 +121,16 @@ type RegulPM <: Regul
 
 end
 
+function RegulPM(x0::SolutionCoeff)
+  info("Using default PM T = 1.0")
+  return RegulPM(x0, 1.0)
+end
+
 # Delete a raster map
 _regul_delete{T<:Regul}(regul::T) = finalize(regul.ptr)
 
-# Regul value
-function value{T<:Regul}(regul::T, x::RasterCoeff)
+# Regul val
+function val{T<:Regul}(regul::T, x::SolutionCoeff)
 
   assert(regul.rmap == x.rmap)
 
@@ -133,12 +144,12 @@ function value{T<:Regul}(regul::T, x::RasterCoeff)
 
 end
 
-# Gradient of regul
-function gradient{T<:Regul}(regul::T, x::RasterCoeff)
+# grad of regul
+function grad{T<:Regul}(regul::T, x::SolutionCoeff)
 
   assert(regul.rmap == x.rmap)
 
-  g = RasterCoeff(regul.rmap)
+  g = SolutionCoeff(regul.rmap)
 
   gptr = pointer(g.data)
   xptr = pointer(x.data)
@@ -155,7 +166,7 @@ function gradient{T<:Regul}(regul::T, x::RasterCoeff)
 end
 
 # Hessian of regul
-function hessian{T<:Regul}(regul::T, x::RasterCoeff)
+function hess{T<:Regul}(regul::T, x::SolutionCoeff)
   #
   # assert(regul.rmap == x.rmap)
   #

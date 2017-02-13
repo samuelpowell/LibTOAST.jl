@@ -3,8 +3,10 @@
 
 @testset "Regularisation" begin
 
+  fdiskip = 300     # Finite difference applied to every xth element
+
   mesh = Mesh(joinpath(meshdir_2D, "circle25_32.msh"));
-  nx, ny = 200, 200
+  nx, ny = 300, 300
   pixelmap = PixelMap(mesh, (nx,ny))
   vtx,  = data(mesh)
 
@@ -12,19 +14,72 @@
   nprm = sin(5*vtx[:,1]./15) + cos(4*vtx[:,2]./15)
 
   nc = NodalCoeff(mesh, nprm)
-  bc = RasterCoeff(pixelmap, nc)
+  rc = SolutionCoeff(pixelmap, nc)
+  r0 = SolutionCoeff(pixelmap, zeros(slen(pixelmap)))
 
   @testset "TK0" begin
 
-    reg = RegulTK0(bc)
+    reg = RegulTK0(rc)
 
-    r0 = RasterCoeff(pixelmap, zeros(blen(pixelmap)))
+    @test val(reg, rc) == 0
+    @test_approx_eq val(reg, r0) norm(rc.data)^2
 
-    @test value(reg, bc) == 0
-    @test_approx_eq value(reg, r0) norm(bc.data)^2
+    @test norm(TOAST.grad(reg,rc)) == 0
+    @test_approx_eq norm(TOAST.grad(reg, r0)) 2*norm(rc)
 
-    @test norm(TOAST.gradient(reg,bc)) == 0
-    @test_approx_eq norm(TOAST.gradient(reg, r0)) 2*norm(bc)
+  end
+
+  @testset "TK1" begin
+
+    reg = RegulTK1(rc)
+
+    @test val(reg, rc) == 0.0
+    @test_approx_eq_eps val(reg, rc+1) 0.0 1e-20
+
+    # Finite difference the grad
+    g = grad(reg, rc)
+
+    for i = 1:fdiskip:length(g)
+    	dx = zeros(size(rc))
+    	dx[i] = 0.0001*rc[i]
+    	@test abs((val(reg, rc+dx) - val(reg, rc-dx))/(2*dx[i]) - g[i]) < 1e-5
+    end
+
+  end
+
+  @testset "TV" begin
+
+    reg = RegulTV(rc)
+
+    @test val(reg, rc) == 0.0
+    @test_approx_eq_eps val(reg, rc+1) 0.0 1e-20
+
+    # Finite difference the grad
+    g = grad(reg, rc)
+
+    for i = 1:fdiskip:length(g)
+      dx = zeros(size(rc))
+      dx[i] = 0.0001*rc[i]
+      @test abs((val(reg, rc+dx) - val(reg, rc-dx))/(2*dx[i]) - g[i]) < 1e-5
+    end
+
+  end
+
+  @testset "PM" begin
+
+    reg = RegulPM(rc)
+
+    @test val(reg, rc) == 0.0
+    @test_approx_eq_eps val(reg, rc+1) 0.0 1e-20
+
+    # Finite difference the grad
+    g = grad(reg, rc)
+
+    for i = 1:fdiskip:length(g)
+      dx = zeros(size(rc))
+      dx[i] = 0.0001*rc[i]
+      @test abs((val(reg, rc+dx) - val(reg, rc-dx))/(2*dx[i]) - g[i]) < 1e-5
+    end
 
   end
 
