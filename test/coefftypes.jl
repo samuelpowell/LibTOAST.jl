@@ -3,14 +3,13 @@
 
 @testset "CoeffTypes" begin
 
-  mesh = Mesh(joinpath(meshdir_2D, "circle25_32.msh"));
-  vtx,  = data(mesh)
+  vtx,  = data(mesh2D)
   nprm = sin(5*vtx[:,1]./15) + cos(4*vtx[:,2]./15)
 
   nx, ny = 250, 250
-  pixelmap = PixelMap(mesh, (nx,ny))
+  pixelmap = PixelMap(mesh2D, (nx,ny))
 
-  nc0 = NodalCoeff(mesh, nprm)
+  nc0 = NodalCoeff(mesh2D, nprm)
 
   sc1 = SolutionCoeff(pixelmap, nc0)
   gc1 = IntermediateCoeff(pixelmap, nc0)
