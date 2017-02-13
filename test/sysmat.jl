@@ -3,10 +3,8 @@
 
 @testset "SystemMatrix" begin
 
-  m = Mesh(joinpath(meshdir_2D, "circle25_32.msh"));
-
   # Construct an empty system matrix, make sure its empty
-  S = SystemMatrix(m)
+  S = SystemMatrix(mesh2D)
   @test TOAST.ncols(S) == 3511
   @test TOAST.nrows(S) == 3511
 

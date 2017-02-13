@@ -5,15 +5,14 @@
 
   fdiskip = 300     # Finite difference applied to every xth element
 
-  mesh = Mesh(joinpath(meshdir_2D, "circle25_32.msh"));
   nx, ny = 300, 300
-  pixelmap = PixelMap(mesh, (nx,ny))
-  vtx,  = data(mesh)
+  pixelmap = PixelMap(mesh2D, (nx,ny))
+  vtx,  = data(mesh2D)
 
   # Create some reasonably smooth function
   nprm = sin(5*vtx[:,1]./15) + cos(4*vtx[:,2]./15)
 
-  nc = NodalCoeff(mesh, nprm)
+  nc = NodalCoeff(mesh2D, nprm)
   rc = SolutionCoeff(pixelmap, nc)
   r0 = SolutionCoeff(pixelmap, zeros(slen(pixelmap)))
 
