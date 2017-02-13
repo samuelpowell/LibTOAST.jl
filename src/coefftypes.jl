@@ -1,10 +1,8 @@
 # TOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
-# TODO: Coefficients are type unstable due to abstract RasterMap member
-
 # Import
-import Base: convert, size, linearindexing, getindex, setindex!, zero
+import Base: convert, size, linearindexing, getindex, setindex!, zero, similar
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -28,13 +26,17 @@ end
 NodalCoeff(mesh::Mesh) = NodalCoeff(mesh, Vector{Float64}(nodecount(mesh)))
 
 Base.linearindexing{T<:NodalCoeff}(::Type{T}) = Base.LinearFast()
+Base.similar{Te}(coeff::NodalCoeff, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.mesh)
 size(coeff::NodalCoeff) = (length(coeff.data),)
 getindex(coeff::NodalCoeff, i::Int) = coeff.data[i]
 setindex!(coeff::NodalCoeff, v, i::Int) = (coeff.data[i] = v)
 
+
+
 # Raster coefficients represent functions in one of the raster bases
 abstract RasterCoeffTypes <: AbstractArray{Float64, 1}
 Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
+Base.similar{T<:RasterCoeffTypes,Te}(coeff::T, ::Type{Te}, dims::Dims) = T(coeff.rmap)
 getindex{T<:RasterCoeffTypes}(coeff::T, i::Int) = coeff.data[i]
 setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
 
