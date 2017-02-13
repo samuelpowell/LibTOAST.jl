@@ -2,7 +2,8 @@
 # Copyright (C) 2017 Samuel Powell
 
 # Import
-import Base: convert, size, linearindexing, getindex, setindex!, zero, similar
+import Base: convert, size, linearindexing, getindex, setindex!, zero, similar,
+  zero, one
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -30,8 +31,8 @@ Base.similar{Te}(coeff::NodalCoeff, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.m
 size(coeff::NodalCoeff) = (length(coeff.data),)
 getindex(coeff::NodalCoeff, i::Int) = coeff.data[i]
 setindex!(coeff::NodalCoeff, v, i::Int) = (coeff.data[i] = v)
-
-
+one(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, ones(nodecount(mesh)))
+zero(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, zeros(nodecount(mesh)))
 
 # Raster coefficients represent functions in one of the raster bases
 abstract RasterCoeffTypes <: AbstractArray{Float64, 1}
@@ -39,6 +40,15 @@ Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
 Base.similar{T<:RasterCoeffTypes,Te}(coeff::T, ::Type{Te}, dims::Dims) = T(coeff.rmap)
 getindex{T<:RasterCoeffTypes}(coeff::T, i::Int) = coeff.data[i]
 setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
+function one{T<:RasterCoeffTypes}(::Type{T}, rmap::RasterMap)
+  coeff = T(rmap)
+  coeff .= 1
+end
+function zero{T<:RasterCoeffTypes}(::Type{T}, rmap::RasterMap)
+  coeff = T(rmap)
+  coeff .= 0
+end
+
 
 # Solution coefficients represent a function expressed in the solution basis,
 # which does not include raster points which fall outside of the support of the
