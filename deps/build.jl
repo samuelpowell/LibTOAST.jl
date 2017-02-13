@@ -2,7 +2,7 @@
 # Copyright (C) 2017 Samuel Powell
 
 # Directories
-toastn = "2.0.1"
+toastn = "2.0.2"
 toastv = "v" * toastn
 prefix = dirname(@__FILE__)
 mkpath(prefix)
