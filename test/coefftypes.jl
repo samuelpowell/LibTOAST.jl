@@ -9,6 +9,16 @@
   nx, ny = 250, 250
   pixelmap = PixelMap(mesh2D, (nx,ny))
 
+  @test all(zero(NodalCoeff, mesh2D) .== 0)
+  @test all(zero(SolutionCoeff, pixelmap) .== 0)
+  @test all(zero(RasterCoeff, pixelmap) .== 0)
+  @test all(zero(IntermediateCoeff, pixelmap) .== 0)
+
+  @test all(one(NodalCoeff, mesh2D) .== 1)
+  @test all(one(SolutionCoeff, pixelmap) .== 1)
+  @test all(one(RasterCoeff, pixelmap) .== 1)
+  @test all(one(IntermediateCoeff, pixelmap) .== 1)
+
   nc0 = NodalCoeff(mesh2D, nprm)
 
   sc1 = SolutionCoeff(pixelmap, nc0)
