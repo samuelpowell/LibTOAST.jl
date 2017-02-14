@@ -9,8 +9,26 @@ export Regul, RegulTK0, RegulTK1, RegulTV, RegulPM
 # Export methods
 export val, grad, hess
 
+"""
+    Regul
+
+Abstract supertype of regulariers capable of calculating the value, gradient,
+and Hessian of of a particular regularisation functional, with parameters
+defined in a SolutionCoeff raster basis.
+
+See RegulTK0, RegulTK1, RegulPM, RegulTV
+"""
 abstract Regul
 
+"""
+  RegulTK0(x₀)
+
+Construct a zeroth-order Tikhonov regularisation functional with baseline
+parameters x₀ (defined in a SolutionCoeff basis).
+
+``f(x) = ‖x-x₀‖²``
+
+"""
 type RegulTK0 <: Regul
 
   ptr::Cxx.CppPtr
@@ -36,6 +54,14 @@ type RegulTK0 <: Regul
 
 end
 
+"""
+  RegulTK1(x₀)
+
+Construct a first-order Tikhonov regularisation functional with baseline
+parameters x₀ (defined in a SolutionCoeff basis).
+
+``f(x) = ‖∇(x-x₀)‖²``
+"""
 type RegulTK1 <: Regul
 
   ptr::Cxx.CppPtr
@@ -63,6 +89,12 @@ type RegulTK1 <: Regul
 
 end
 
+"""
+    RegulTV(x₀, β=1.0)
+
+Construct a soft Total-Variation regularisation functional with parameter
+β and baseline parameters x₀ (defined in a SolutionCoeff basis).
+"""
 type RegulTV <: Regul
 
   ptr::Cxx.CppPtr
@@ -94,7 +126,12 @@ function RegulTV(x0::SolutionCoeff)
   return RegulTV(x0, 1.0)
 end
 
+"""
+    RegulPM(x₀, T=1.0)
 
+Construct a Perona-Malik regularisation functional with parameter T, and
+baseline parameters x₀ (defined in a SolutionCoeff basis).
+"""
 type RegulPM <: Regul
 
   ptr::Cxx.CppPtr
@@ -130,6 +167,12 @@ end
 _regul_delete{T<:Regul}(regul::T) = finalize(regul.ptr)
 
 # Regul val
+"""
+  val(regul, x)
+
+Return the value of the regularisation functional defined by `regul` evaluated
+with parameters `x` (defined in a SolutionCoeff basis).
+"""
 function val{T<:Regul}(regul::T, x::SolutionCoeff)
 
   assert(regul.rmap == x.rmap)
@@ -145,6 +188,12 @@ function val{T<:Regul}(regul::T, x::SolutionCoeff)
 end
 
 # grad of regul
+"""
+  grad(regul, x)
+
+Return the gradient of the regularisation functional defined by `regul` evaluated
+with parameters `x` (defined in a SolutionCoeff basis).
+"""
 function grad{T<:Regul}(regul::T, x::SolutionCoeff)
 
   assert(regul.rmap == x.rmap)
@@ -166,6 +215,12 @@ function grad{T<:Regul}(regul::T, x::SolutionCoeff)
 end
 
 # Hessian of regul
+"""
+  val(regul, x)
+
+Return the Hessian of the regularisation functional defined by `regul` evaluated
+with parameters `x` (defined in a SolutionCoeff basis).
+"""
 function hess{T<:Regul}(regul::T, x::SolutionCoeff)
   #
   # assert(regul.rmap == x.rmap)

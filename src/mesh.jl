@@ -43,13 +43,22 @@ type Mesh
 end
 
 """
-    Mesh(node, elem, eltp)
+    Mesh(vtxs, elem, eltp)
 
 Construct a new mesh given a list of vertices, elements, and element types.
+
+# Arguments
+* `vtxs::Matrix{Float64}`: matrix of vertices (nvtx x dim)
+* `elem::Matrix{Integer}`: element connectivity matrix (nels x mnnd)
+* `eltp::Vector{Integer}`: a vector of element types (nels x 1)
+
+...where `nvtx` is the number of vertices in the mesh, `dim` is the spatial
+dimension, `nels` is the number of elements, `mnnd` is the maximium number of 
+nodes per element.
 """
-function Mesh{I <: Integer}(node::Matrix{Float64}, elem::Matrix{I}, eltp::Vector{I})
+function Mesh{I <: Integer}(vtxs::Matrix{Float64}, elem::Matrix{I}, eltp::Vector{I})
   meshptr = _mesh_new()
-  _make!(meshptr,node,elem,eltp)
+  _make!(meshptr,vtxs,elem,eltp)
   return Mesh(meshptr)
 end
 
