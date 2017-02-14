@@ -15,6 +15,12 @@ export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
 #
 
 # Nodal coefficients represent functions in the mesh basis
+"""
+    NodalCoeff(mesh, coeff)
+
+Return a nodal coefficient array for a basis defined on the `mesh` initialised
+with the `coeff` vector of length equal to the number of nodes in the basis.
+"""
 type NodalCoeff <: AbstractArray{Float64, 1}
   mesh::Mesh
   data::Vector{Float64}
@@ -24,6 +30,11 @@ type NodalCoeff <: AbstractArray{Float64, 1}
   end
 end
 
+"""
+    NodalCoeff(mesh)
+
+Return an uninitialised nodal coefficient array for a basis defined on the `mesh`.
+"""
 NodalCoeff(mesh::Mesh) = NodalCoeff(mesh, Vector{Float64}(nodecount(mesh)))
 
 Base.linearindexing{T<:NodalCoeff}(::Type{T}) = Base.LinearFast()
@@ -31,7 +42,19 @@ Base.similar{Te}(coeff::NodalCoeff, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.m
 size(coeff::NodalCoeff) = (length(coeff.data),)
 getindex(coeff::NodalCoeff, i::Int) = coeff.data[i]
 setindex!(coeff::NodalCoeff, v, i::Int) = (coeff.data[i] = v)
+
+"""
+    one(NodalCoeff, mesh)
+
+Return the multiplicative identity element for a basis defined on the `mesh`.
+"""
 one(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, ones(nodecount(mesh)))
+
+"""
+    zero(NodalCoeff, mesh)
+
+Return the additive identity element for a basis defined on the `mesh`.
+"""
 zero(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, zeros(nodecount(mesh)))
 
 # Raster coefficients represent functions in one of the raster bases
@@ -40,10 +63,22 @@ Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
 Base.similar{T<:RasterCoeffTypes,Te}(coeff::T, ::Type{Te}, dims::Dims) = T(coeff.rast)
 getindex{T<:RasterCoeffTypes}(coeff::T, i::Int) = coeff.data[i]
 setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
+
+"""
+    one(RasterCoeffTypes, Raster)
+
+Return the multiplicative identity element for a raster basis defined by `raster`.
+"""
 function one{T<:RasterCoeffTypes}(::Type{T}, rast::Raster)
   coeff = T(rast)
   coeff .= 1
 end
+
+"""
+    zero(NodalCoeff, mesh)
+
+Return the additive identity element for a raster basis defined by `raster`.
+"""
 function zero{T<:RasterCoeffTypes}(::Type{T}, rast::Raster)
   coeff = T(rast)
   coeff .= 0
@@ -53,6 +88,12 @@ end
 # Solution coefficients represent a function expressed in the solution basis,
 # which does not include raster points which fall outside of the support of the
 # associated mesh.
+"""
+    SolutionCoeff(raster, coeff)
+
+Return a coefficient array for the solution basis defined by the `raster`,
+initialised with the `coeff` vector of length equal to slen(raster).
+"""
 type SolutionCoeff <: RasterCoeffTypes
   rast::Raster
   data::Vector{Float64}
@@ -64,6 +105,11 @@ end
 
 size(coeff::SolutionCoeff) = (length(coeff.data),)
 
+"""
+    SolutionCoeff(raster)
+
+Return an uninitialised coefficient array for solution basis defined by the `raster`.
+"""
 function SolutionCoeff(rast::Raster, ci::NodalCoeff)
   co = SolutionCoeff(rast)
   map!(co,ci)
@@ -75,6 +121,12 @@ SolutionCoeff(rast::Raster) = SolutionCoeff(rast, Vector{Float64}(slen(rast)))
 # Raster coefficients represent a function expressed in the rasterised basis,
 # which is defined over a square or cuboid redion, and may include superfluous
 # elements which are outside of the support of the mesh.
+"""
+    RasterCoeff(raster, coeff)
+
+Return a coefficient array for the raster basis defined by the `raster`,
+initialised with the `coeff` vector of length equal to blen(raster).
+"""
 type RasterCoeff <: RasterCoeffTypes
   rast::Raster
   data::Vector{Float64}
@@ -86,6 +138,11 @@ end
 
 size(coeff::RasterCoeff) = (length(coeff.data),)
 
+"""
+    RasterCoeff(mesh)
+
+Return an uninitialised coefficient array for raster basis defined by the `raster`.
+"""
 function RasterCoeff(rast::Raster, ci::NodalCoeff)
   co = RasterCoeff(rast)
   map!(co,ci)
@@ -108,12 +165,23 @@ end
 
 size(coeff::IntermediateCoeff) = (length(coeff.data),)
 
+"""
+    IntermediateCoeff(raster, coeff)
+
+Return a coefficient array for the intermediate basis defined by the `raster`,
+initialised with the `coeff` vector of length equal to glen(raster).
+"""
 function IntermediateCoeff(rast::Raster, ci::NodalCoeff)
   co = IntermediateCoeff(rast)
   map!(co,ci)
   return co
 end
 
+"""
+    IntermediateCoeff(mesh)
+
+Return an uninitialised coefficient array for intermediate basis defined by the `raster`.
+"""
 IntermediateCoeff(rast::Raster) = IntermediateCoeff(rast, Vector{Float64}(glen(rast)))
 
 #
@@ -127,6 +195,12 @@ function convert{T<:RasterCoeffTypes}(::Type{NodalCoeff}, ci::T)
   return co
 end
 
+"""
+  map!(out::NodalCoeff, in::RasterCoeffTypes)
+
+Map the function defined by the `input` coefficients defined on a raster basis
+to a nodal basis defined on the mesh, overwriting `out` in place.
+"""
 map!(co::NodalCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rast, _sn)
 map!(co::NodalCoeff, ci::RasterCoeff) = _map!(co.data, ci.data, ci.rast, _bn)
 map!(co::NodalCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _gn)
@@ -138,7 +212,12 @@ function convert{T<:RasterCoeffTypes}(::Type{RasterCoeff}, ci::T)
   return co
 end
 
+"""
+  map!(out::RasterCoeffTypes, in::RasterCoeffTypes)
 
+Map a function defined on a raster basis, `in`, to an alternative raster basis,
+overwriting `out` in place.
+"""
 map!(co::RasterCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rast, _nb)
 map!(co::RasterCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rast, _sb)
 map!(co::RasterCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _gb)
