@@ -2,14 +2,60 @@
 # Copyright (C) 2017 Samuel Powell
 
 # Export integral enumerations
-export FF, DD, BNDFF, PFF, PDD, BNDPFF, P, PF, BNDPFF
+export BilinearIntegrals, FF, DD, BNDFF
+export BilinearParamIntegrals, PFF, PDD, BNDPFF
+export LinearParamIntegrals, P, PF, BNDPFF
 
 # Methods
 export assemble, assemble!
 
 # The following enumerations are defined in mesh.h
+"""
+  BilinearIntegrals
+
+An enumeration of integrals over products of two basis functions, supported for
+sytsem matrix assembly.
+
+# Integrals
+* `FF`: ``∫ uᵢ(r) uⱼ(r) dΩ``
+* `DD`: ``∫ ∇uᵢ(r) ⋅ ∇uⱼ(r) dΩ``
+* `BNDFF`: ``∫ uᵢ(r) uⱼ(r) d(δΩ)``
+
+Where ``uᵢ(r)`` is the basis function for the ``i``th node, and ``d(δΩ)``
+indicates integration only over boundary nodes.
+"""
 @enum BilinearIntegrals FF=0 DD=1 BNDFF=12
+
+"""
+  BilinearParamIntegrals
+
+An enumeration of integrals over products of two basis functions and a function
+defined in the nodal basis, supported for sytsem matrix assembly.
+
+# Integrals
+* `PFF`: ``∑ₖ fₖ ∫ uᵢ(r) uⱼ(r) uₖ(r) dΩ``
+* `PDD`: ``∑ₖ fₖ ∫ ∇uᵢ(r) ⋅ ∇uⱼ(r) uₖ(r) dΩ``
+* `BNPDFF`: ``∑ₖ fₖ ∫ uᵢ(r) uⱼ(r) uₖ(r) d(δΩ)``
+
+Where ``uᵢ(r)`` is the basis function for the ``i``th node, and ``d(δΩ)``
+indicates integration only over boundary nodes.
+"""
 @enum BilinearParamIntegrals PFF=2 PDD=3 BNDPFF=4
+
+"""
+  BilinearParamIntegrals
+
+An enumeration of integrals over a function defined in the nodal basis, optionally
+in product with a basis function, supported for RHS assembly.
+
+# Integrals
+* `P`: ``∑ₖ fₖ ∫ uₖ(r) dΩ``
+* `PF`: ``∑ₖ fₖ ∫ uᵢ(r) uₖ(r) dΩ``
+* `BNPDF`: ``∑ₖ fₖ ∫ uᵢ(r) uₖ(r) d(δΩ)``
+
+Where ``uᵢ(r)`` is the basis function for the ``i``th node, and ``d(δΩ)``
+indicates integration only over boundary nodes.
+"""
 @enum LinearParamIntegrals P=0 PF=1 BNDPF=2
 
 """
@@ -17,6 +63,10 @@ export assemble, assemble!
 
 Construct a new system matrix and assemble the bilinear form over the mesh,
 as specified by integral.
+
+# Arguments
+* `mesh::Mesh`: a TOAST mesh
+* `integral::BilinearIntegrals`: the desired integral
 """
 function assemble(mesh::Mesh, int::BilinearIntegrals)
   sysmat = SystemMatrix(mesh)
@@ -29,6 +79,10 @@ end
 
 Assemble the bilinear form over the mesh as specified by integral, and add the
 result to the provided system matrix.
+
+# Arguments
+* `sysmat::SystemMatrix`: a TOAST system matrix
+* `integral::BilinearIntegrals`: the desired integral
 """
 function assemble!(sysmat::SystemMatrix, int::BilinearIntegrals)
   meshptr = sysmat.mesh.ptr
@@ -41,8 +95,13 @@ end
 
 Construct a new system matrix and assemble the bilinear form over the mesh,
 as specified by integral and associated parameter.
+
+# Arguments
+* `mesh::Mesh`: a TOAST mesh
+* `integral::BilinearIntegrals`: the desired integral
+* `parameter::NodalCoeff`: a function in the nodal basis
 """
-function assemble(mesh::Mesh, int::BilinearParamIntegrals, param::Vector{Float64})
+function assemble(mesh::Mesh, int::BilinearParamIntegrals, param::NodalCoeff)
   sysmat = SystemMatrix(mesh)
   assemble!(sysmat, int, param)
   return sysmat
@@ -53,13 +112,20 @@ end
 
 Assemble the bilinear form over the mesh as specified by integral and associated
 parameter, add the result to the provided system matrix.
+
+# Arguments
+* `sysmat::SystemMatrix`: a TOAST system matrix
+* `integral::BilinearIntegrals`: the desired integral
+* `parameter::NodalCoeff`: a function in the nodal basis
 """
 function assemble!(sysmat::SystemMatrix,
                    int::BilinearParamIntegrals,
-                   param::Vector{Float64})
+                   param::NodalCoeff)
+
+  assert(param.mesh == sysmat.mesh)
 
   nprm = length(param)
-  pprm = pointer(param)
+  pprm = pointer(param.data)
   mode = Cint(int)
   nnd = nodecount(sysmat.mesh)
 

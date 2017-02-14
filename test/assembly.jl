@@ -25,9 +25,9 @@
   @test norm(sparse(S1),1)-norm(sparse(S2),1) < 1e-14
 
   # Check we can assemble with parameters
-  p1 = rand(nodecount(mesh3D))
-  p2 = rand(nodecount(mesh3D))
-  p3 = rand(nodecount(mesh3D))
+  p1 = NodalCoeff(mesh3D,rand(nodecount(mesh3D)))
+  p2 = NodalCoeff(mesh3D,rand(nodecount(mesh3D)))
+  p3 = NodalCoeff(mesh3D,rand(nodecount(mesh3D)))
 
   S1 = SystemMatrix(mesh3D)
   assemble!(S1, PFF, p1)
