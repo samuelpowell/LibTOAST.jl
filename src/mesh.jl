@@ -12,6 +12,12 @@ export delete, string, print, show, load, save,
   nodecount, elemcount, dimensions, boundingbox, fullsize, data, maxnodes, surface
 
 # Type definitions
+"""
+    Mesh
+
+A reference to a TOAST mesh, with cached sparsity structure for re-use in the
+generation of, e.g., system matrices.
+"""
 type Mesh
 
   ptr::Cxx.CppPtr
@@ -53,7 +59,7 @@ Construct a new mesh given a list of vertices, elements, and element types.
 * `eltp::Vector{Integer}`: a vector of element types (nels x 1)
 
 ...where `nvtx` is the number of vertices in the mesh, `dim` is the spatial
-dimension, `nels` is the number of elements, `mnnd` is the maximium number of 
+dimension, `nels` is the number of elements, `mnnd` is the maximium number of
 nodes per element.
 """
 function Mesh{I <: Integer}(vtxs::Matrix{Float64}, elem::Matrix{I}, eltp::Vector{I})

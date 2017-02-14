@@ -37,15 +37,15 @@ zero(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, zeros(nodecount(mesh)))
 # Raster coefficients represent functions in one of the raster bases
 abstract RasterCoeffTypes <: AbstractArray{Float64, 1}
 Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
-Base.similar{T<:RasterCoeffTypes,Te}(coeff::T, ::Type{Te}, dims::Dims) = T(coeff.rmap)
+Base.similar{T<:RasterCoeffTypes,Te}(coeff::T, ::Type{Te}, dims::Dims) = T(coeff.rast)
 getindex{T<:RasterCoeffTypes}(coeff::T, i::Int) = coeff.data[i]
 setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
-function one{T<:RasterCoeffTypes}(::Type{T}, rmap::RasterMap)
-  coeff = T(rmap)
+function one{T<:RasterCoeffTypes}(::Type{T}, rast::Raster)
+  coeff = T(rast)
   coeff .= 1
 end
-function zero{T<:RasterCoeffTypes}(::Type{T}, rmap::RasterMap)
-  coeff = T(rmap)
+function zero{T<:RasterCoeffTypes}(::Type{T}, rast::Raster)
+  coeff = T(rast)
   coeff .= 0
 end
 
@@ -54,67 +54,67 @@ end
 # which does not include raster points which fall outside of the support of the
 # associated mesh.
 type SolutionCoeff <: RasterCoeffTypes
-  rmap::RasterMap
+  rast::Raster
   data::Vector{Float64}
-  function SolutionCoeff(rmap::RasterMap, data::Vector{Float64})
-    assert(length(data) == slen(rmap))
-    return new(rmap,data)
+  function SolutionCoeff(rast::Raster, data::Vector{Float64})
+    assert(length(data) == slen(rast))
+    return new(rast,data)
   end
 end
 
 size(coeff::SolutionCoeff) = (length(coeff.data),)
 
-function SolutionCoeff(rmap::RasterMap, ci::NodalCoeff)
-  co = SolutionCoeff(rmap)
+function SolutionCoeff(rast::Raster, ci::NodalCoeff)
+  co = SolutionCoeff(rast)
   map!(co,ci)
   return co
 end
 
-SolutionCoeff(rmap::RasterMap) = SolutionCoeff(rmap, Vector{Float64}(slen(rmap)))
+SolutionCoeff(rast::Raster) = SolutionCoeff(rast, Vector{Float64}(slen(rast)))
 
 # Raster coefficients represent a function expressed in the rasterised basis,
 # which is defined over a square or cuboid redion, and may include superfluous
 # elements which are outside of the support of the mesh.
 type RasterCoeff <: RasterCoeffTypes
-  rmap::RasterMap
+  rast::Raster
   data::Vector{Float64}
-  function RasterCoeff(rmap::RasterMap, data::Vector{Float64})
-    assert(length(data) == blen(rmap))
-    return new(rmap,data)
+  function RasterCoeff(rast::Raster, data::Vector{Float64})
+    assert(length(data) == blen(rast))
+    return new(rast,data)
   end
 end
 
 size(coeff::RasterCoeff) = (length(coeff.data),)
 
-function RasterCoeff(rmap::RasterMap, ci::NodalCoeff)
-  co = RasterCoeff(rmap)
+function RasterCoeff(rast::Raster, ci::NodalCoeff)
+  co = RasterCoeff(rast)
   map!(co,ci)
   return co
 end
 
-RasterCoeff(rmap::RasterMap) = RasterCoeff(rmap, Vector{Float64}(blen(rmap)))
+RasterCoeff(rast::Raster) = RasterCoeff(rast, Vector{Float64}(blen(rast)))
 
 # Intermediate coefficients represent a function expressed in a higher resolution
 # version of the raster basis, and may include superfluous elements which are
 # outside of the support of the mesh.
 type IntermediateCoeff <: RasterCoeffTypes
-  rmap::RasterMap
+  rast::Raster
   data::Vector{Float64}
-  function IntermediateCoeff(rmap::RasterMap, data::Vector{Float64})
-    assert(length(data) == glen(rmap))
-    return new(rmap,data)
+  function IntermediateCoeff(rast::Raster, data::Vector{Float64})
+    assert(length(data) == glen(rast))
+    return new(rast,data)
   end
 end
 
 size(coeff::IntermediateCoeff) = (length(coeff.data),)
 
-function IntermediateCoeff(rmap::RasterMap, ci::NodalCoeff)
-  co = IntermediateCoeff(rmap)
+function IntermediateCoeff(rast::Raster, ci::NodalCoeff)
+  co = IntermediateCoeff(rast)
   map!(co,ci)
   return co
 end
 
-IntermediateCoeff(rmap::RasterMap) = IntermediateCoeff(rmap, Vector{Float64}(glen(rmap)))
+IntermediateCoeff(rast::Raster) = IntermediateCoeff(rast, Vector{Float64}(glen(rast)))
 
 #
 # Coefficient mapping (and construction)
@@ -122,59 +122,59 @@ IntermediateCoeff(rmap::RasterMap) = IntermediateCoeff(rmap, Vector{Float64}(gle
 
 # Convert everything to nodal coefficients
 function convert{T<:RasterCoeffTypes}(::Type{NodalCoeff}, ci::T)
-  co = NodalCoeff(ci.rmap.mesh)
+  co = NodalCoeff(ci.rast.mesh)
   map!(co, ci)
   return co
 end
 
-map!(co::NodalCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rmap, _sn)
-map!(co::NodalCoeff, ci::RasterCoeff) = _map!(co.data, ci.data, ci.rmap, _bn)
-map!(co::NodalCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rmap, _gn)
+map!(co::NodalCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rast, _sn)
+map!(co::NodalCoeff, ci::RasterCoeff) = _map!(co.data, ci.data, ci.rast, _bn)
+map!(co::NodalCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _gn)
 
 # Convert everything to raster coefficients
 function convert{T<:RasterCoeffTypes}(::Type{RasterCoeff}, ci::T)
-  co = RasterCoeff(ci.rmap)
+  co = RasterCoeff(ci.rast)
   map!(co,ci)
   return co
 end
 
 
-map!(co::RasterCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rmap, _nb)
-map!(co::RasterCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rmap, _sb)
-map!(co::RasterCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rmap, _gb)
+map!(co::RasterCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rast, _nb)
+map!(co::RasterCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rast, _sb)
+map!(co::RasterCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _gb)
 
 # Convert everything to solution coefficients
 function convert{T<:RasterCoeffTypes}(::Type{SolutionCoeff}, ci::T)
-  co = SolutionCoeff(ci.rmap)
+  co = SolutionCoeff(ci.rast)
   map!(co,ci)
   return co
 end
 
-map!(co::SolutionCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rmap, _ns)
-map!(co::SolutionCoeff, ci::RasterCoeff)  = _map!(co.data, ci.data, ci.rmap, _bs)
-map!(co::SolutionCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rmap, _gs)
+map!(co::SolutionCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rast, _ns)
+map!(co::SolutionCoeff, ci::RasterCoeff)  = _map!(co.data, ci.data, ci.rast, _bs)
+map!(co::SolutionCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _gs)
 
 # Convert everything to intermediate coefficients
 function convert{T<:RasterCoeffTypes}(::Type{IntermediateCoeff}, ci::T)
-  co = IntermediateCoeff(ci.rmap)
+  co = IntermediateCoeff(ci.rast)
   map!(co,ci)
   return co
 end
 
-map!(co::IntermediateCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rmap, _ng)
-map!(co::IntermediateCoeff, ci::RasterCoeff)  = _map!(co.data, ci.data, ci.rmap, _bg)
-map!(co::IntermediateCoeff, ci::SolutionCoeff) = _map!(co.data, ci.data, ci.rmap, _sg)
+map!(co::IntermediateCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rast, _ng)
+map!(co::IntermediateCoeff, ci::RasterCoeff)  = _map!(co.data, ci.data, ci.rast, _bg)
+map!(co::IntermediateCoeff, ci::SolutionCoeff) = _map!(co.data, ci.data, ci.rast, _sg)
 
 # Low level mapping function
 function _map!(ovec::Vector{Float64},
                ivec::Vector{Float64},
-               rmap::RasterMap,
+               rast::Raster,
                mode::MapTransforms)
 
   modeint = Int(mode)
   ovecptr = pointer(ovec)
   ivecptr = pointer(ivec)
-  rmapptr = rmap.ptr
+  rastptr = rast.ptr
 
   ilen = length(ivec)
   olen = length(ovec)
@@ -187,43 +187,43 @@ function _map!(ovec::Vector{Float64},
       switch($(modeint))
       {
           case 0:
-              $(rmapptr)->Map_MeshToBasis(iprm, oprm);
+              $(rastptr)->Map_MeshToBasis(iprm, oprm);
               break;
           case 1:
-              $(rmapptr)->Map_MeshToGrid(iprm, oprm);
+              $(rastptr)->Map_MeshToGrid(iprm, oprm);
               break;
           case 2:
-              $(rmapptr)->Map_MeshToSol(iprm, oprm);
+              $(rastptr)->Map_MeshToSol(iprm, oprm);
               break;
 
           case 3:
-              $(rmapptr)->Map_BasisToMesh(iprm, oprm);
+              $(rastptr)->Map_BasisToMesh(iprm, oprm);
               break;
           case 4:
-              $(rmapptr)->Map_BasisToGrid(iprm, oprm);
+              $(rastptr)->Map_BasisToGrid(iprm, oprm);
               break;
           case 5:
-              $(rmapptr)->Map_BasisToSol(iprm, oprm);
+              $(rastptr)->Map_BasisToSol(iprm, oprm);
               break;
 
           case 6:
-              $(rmapptr)->Map_SolToMesh(iprm, oprm);
+              $(rastptr)->Map_SolToMesh(iprm, oprm);
               break;
           case 7:
-              $(rmapptr)->Map_SolToBasis(iprm, oprm);
+              $(rastptr)->Map_SolToBasis(iprm, oprm);
               break;
           case 8:
-              $(rmapptr)->Map_SolToGrid(iprm, oprm);
+              $(rastptr)->Map_SolToGrid(iprm, oprm);
               break;
 
           case 9:
-              $(rmapptr)->Map_GridToMesh(iprm, oprm);
+              $(rastptr)->Map_GridToMesh(iprm, oprm);
               break;
           case 10:
-              $(rmapptr)->Map_GridToSol(iprm, oprm);
+              $(rastptr)->Map_GridToSol(iprm, oprm);
               break;
           case 11:
-              $(rmapptr)->Map_GridToBasis(iprm, oprm);
+              $(rastptr)->Map_GridToBasis(iprm, oprm);
               break;
       }
   """
