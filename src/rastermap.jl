@@ -20,6 +20,11 @@ abstract RasterMap
 Map from nodal coefficients to a rasterised grid of pixels of specified
 dimension using linear interpolation via an intermediate grid containing an
 integer multiple, gscale, of pixels.
+
+# Arguments
+* `mesh::Mesh`: a TOAST mesh
+* `dims::NTuple{ndim,Integer}`: the dimensions of the raster basis
+* `gscale=2::Int`: the scale factor used for the intermediate mapping raster
 """
 type PixelMap <: RasterMap
 
@@ -107,7 +112,8 @@ _raster_delete(RasterMap::RasterMap) = finalize(RasterMap.ptr)
 """
     nlen(rastermap)
 
-Return the number of nodal coefficients in the associated mesh basis.
+Return the number of nodal coefficients in the mesh basis associated with the
+raster.
 """
 nlen(RasterMap::RasterMap) = nodecount(RasterMap.mesh)
 
