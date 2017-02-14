@@ -27,6 +27,7 @@ type PixelMap <: RasterMap
   mesh::Mesh
 
   function PixelMap{N}(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2)
+    assert(N == dimension(mesh))
     rasterptr = _rastermap_new(mesh, Pixel, bdim, gscale)
     pixelmap = new(rasterptr, mesh)
     finalizer(pixelmap, _raster_delete)
