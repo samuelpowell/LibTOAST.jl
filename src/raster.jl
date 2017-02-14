@@ -5,12 +5,20 @@
 import Base: string, print, show
 
 # Export types
-export RasterMap, PixelMap
+export Raster, PixelMap
 
 # Export methods
 export nlen, glen, blen, slen, map, gradient
 
-abstract RasterMap
+"""
+    Raster
+
+A rasterisation of the bounding box of a geometry defined by the mesh, with
+methods capable of transforming functions between nodal, and rasterised bases.
+
+See PixelMap.
+"""
+abstract Raster
 
 @enum RasterBases Pixel CubicPixel GaussBlob BesselBlob HanningBlob RampBlob SplineBlob
 
@@ -26,13 +34,13 @@ integer multiple, gscale, of pixels.
 * `dims::NTuple{ndim,Integer}`: the dimensions of the raster basis
 * `gscale=2::Int`: the scale factor used for the intermediate mapping raster
 """
-type PixelMap <: RasterMap
+type PixelMap <: Raster
 
   ptr::Cxx.CppPtr
   mesh::Mesh
 
   function PixelMap{N}(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2)
-    rasterptr = _rastermap_new(mesh, Pixel, bdim, gscale)
+    rasterptr = _rasterast_new(mesh, Pixel, bdim, gscale)
     pixelmap = new(rasterptr, mesh)
     finalizer(pixelmap, _raster_delete)
     return pixelmap
@@ -41,7 +49,7 @@ type PixelMap <: RasterMap
 end
 
 # Create and initialise a new basis mapper
-function _rastermap_new{N}(mesh::Mesh,
+function _rasterast_new{N}(mesh::Mesh,
                            basis::RasterBases,
                            bdim::NTuple{N,Integer},
                            gscale::Integer;
@@ -107,35 +115,35 @@ function _rastermap_new{N}(mesh::Mesh,
 end
 
 # Delete a raster map
-_raster_delete(RasterMap::RasterMap) = finalize(RasterMap.ptr)
+_raster_delete(Raster::Raster) = finalize(Raster.ptr)
 
 """
-    nlen(rastermap)
+    nlen(rasterast)
 
 Return the number of nodal coefficients in the mesh basis associated with the
 raster.
 """
-nlen(RasterMap::RasterMap) = nodecount(RasterMap.mesh)
+nlen(Raster::Raster) = nodecount(Raster.mesh)
 
 """
-    slen(rastermap)
+    slen(rasterast)
 
 Return the number of coefficients in the raster solution basis, which does
 not include raster points outside of the support of the underlying mesh.
 """
-slen(RasterMap::RasterMap) = @cxx RasterMap.ptr->SLen()
+slen(Raster::Raster) = @cxx Raster.ptr->SLen()
 
 """
-    blen(rastermap)
+    blen(rasterast)
 
 Return the number of coefficients in the raster.
 """
-blen(RasterMap::RasterMap) = @cxx RasterMap.ptr->BLen()
+blen(Raster::Raster) = @cxx Raster.ptr->BLen()
 
 """
-    glen(rastermap)
+    glen(rasterast)
 
 Return the number of coefficients in the raster intermediate basis, which is
 used to map between bases.
 """
-glen(RasterMap::RasterMap) = @cxx RasterMap.ptr->GLen()
+glen(Raster::Raster) = @cxx Raster.ptr->GLen()

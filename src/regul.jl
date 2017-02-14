@@ -32,11 +32,11 @@ parameters x₀ (defined in a SolutionCoeff basis).
 type RegulTK0 <: Regul
 
   ptr::Cxx.CppPtr
-  rmap::RasterMap
+  rast::Raster
 
   function RegulTK0(x0::SolutionCoeff)
 
-    rmap = x0.rmap
+    rast = x0.rast
     xptr = pointer(x0.data)
     xlen = length(x0)
 
@@ -47,7 +47,7 @@ type RegulTK0 <: Regul
       return reg;
     """
 
-    regul = new(regulptr, rmap)
+    regul = new(regulptr, rast)
     finalizer(regul, _regul_delete)
     return regul
   end
@@ -65,12 +65,12 @@ parameters x₀ (defined in a SolutionCoeff basis).
 type RegulTK1 <: Regul
 
   ptr::Cxx.CppPtr
-  rmap::RasterMap
+  rast::Raster
 
   function RegulTK1(x0::SolutionCoeff)
 
-    rmap = x0.rmap
-    rptr = rmap.ptr
+    rast = x0.rast
+    rptr = rast.ptr
     xptr = pointer(x0.data)
     xlen = length(x0)
 
@@ -82,7 +82,7 @@ type RegulTK1 <: Regul
       return reg;
     """
 
-    regul = new(regulptr, rmap)
+    regul = new(regulptr, rast)
     finalizer(regul, _regul_delete)
     return regul
   end
@@ -98,12 +98,12 @@ Construct a soft Total-Variation regularisation functional with parameter
 type RegulTV <: Regul
 
   ptr::Cxx.CppPtr
-  rmap::RasterMap
+  rast::Raster
 
   function RegulTV(x0::SolutionCoeff, β::Float64)
 
-    rmap = x0.rmap
-    rptr = rmap.ptr
+    rast = x0.rast
+    rptr = rast.ptr
     xptr = pointer(x0.data)
     xlen = length(x0)
 
@@ -113,7 +113,7 @@ type RegulTV <: Regul
       return reg;
     """
 
-    regul = new(regulptr, rmap)
+    regul = new(regulptr, rast)
     finalizer(regul, _regul_delete)
     return regul
 
@@ -135,12 +135,12 @@ baseline parameters x₀ (defined in a SolutionCoeff basis).
 type RegulPM <: Regul
 
   ptr::Cxx.CppPtr
-  rmap::RasterMap
+  rast::Raster
 
   function RegulPM(x0::SolutionCoeff, T::Float64)
 
-    rmap = x0.rmap
-    rptr = rmap.ptr
+    rast = x0.rast
+    rptr = rast.ptr
     xptr = pointer(x0.data)
     xlen = length(x0)
 
@@ -150,7 +150,7 @@ type RegulPM <: Regul
       return reg;
     """
 
-    regul = new(regulptr, rmap)
+    regul = new(regulptr, rast)
     finalizer(regul, _regul_delete)
     return regul
 
@@ -175,7 +175,7 @@ with parameters `x` (defined in a SolutionCoeff basis).
 """
 function val{T<:Regul}(regul::T, x::SolutionCoeff)
 
-  assert(regul.rmap == x.rmap)
+  assert(regul.rast == x.rast)
 
   xptr = pointer(x.data)
   xlen = length(x)
@@ -196,9 +196,9 @@ with parameters `x` (defined in a SolutionCoeff basis).
 """
 function grad{T<:Regul}(regul::T, x::SolutionCoeff)
 
-  assert(regul.rmap == x.rmap)
+  assert(regul.rast == x.rast)
 
-  g = SolutionCoeff(regul.rmap)
+  g = SolutionCoeff(regul.rast)
 
   gptr = pointer(g.data)
   xptr = pointer(x.data)
@@ -223,7 +223,7 @@ with parameters `x` (defined in a SolutionCoeff basis).
 """
 function hess{T<:Regul}(regul::T, x::SolutionCoeff)
   #
-  # assert(regul.rmap == x.rmap)
+  # assert(regul.rast == x.rast)
   #
   # xptr = pointer(x)
   # xlen = length(x)
