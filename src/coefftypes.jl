@@ -57,6 +57,15 @@ Return the additive identity element for a basis defined on the `mesh`.
 """
 zero(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, zeros(nodecount(mesh)))
 
+"""
+    fill(NodalCoeff, mesh, value)
+
+Return a constant function of `value` for a basis defined on the `mesh`.
+"""
+function fill(::Type{NodalCoeff}, mesh::Mesh, value::Float64)
+  NodalCoeff(mesh, fill(value, nodecount(mesh)))
+end
+
 # Raster coefficients represent functions in one of the raster bases
 abstract RasterCoeffTypes <: AbstractArray{Float64, 1}
 Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
@@ -69,21 +78,23 @@ setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
 
 Return the multiplicative identity element for a raster basis defined by `raster`.
 """
-function one{T<:RasterCoeffTypes}(::Type{T}, rast::Raster)
-  coeff = T(rast)
-  coeff .= 1
-end
+one{T<:RasterCoeffTypes}(::Type{T}, rast::Raster) =  T(rast, ones(size(T, rast)...))
 
 """
-    zero(NodalCoeff, mesh)
+    zero(RasterCoeffTypes, mesh)
 
 Return the additive identity element for a raster basis defined by `raster`.
 """
-function zero{T<:RasterCoeffTypes}(::Type{T}, rast::Raster)
-  coeff = T(rast)
-  coeff .= 0
-end
+zero{T<:RasterCoeffTypes}(::Type{T}, rast::Raster) = T(rast, zeros(size(T, rast)...))
 
+"""
+    fill(RasterCoeffTypes, mesh, value)
+
+Return a constant function of `value` for a basis defined on the `mesh`.
+"""
+function one{T<:RasterCoeffTypes}(::Type{T}, rast::Raster, value::Float64)
+  T(rast, fill(size(T, rast)...))
+end
 
 # Solution coefficients represent a function expressed in the solution basis,
 # which does not include raster points which fall outside of the support of the
@@ -104,6 +115,7 @@ type SolutionCoeff <: RasterCoeffTypes
 end
 
 size(coeff::SolutionCoeff) = (length(coeff.data),)
+size(::Type{SolutionCoeff}, raster::Raster) = (slen(raster),)
 
 """
     SolutionCoeff(raster)
@@ -137,6 +149,7 @@ type RasterCoeff <: RasterCoeffTypes
 end
 
 size(coeff::RasterCoeff) = (length(coeff.data),)
+size(::Type{RasterCoeff}, raster::Raster) = (blen(raster),)
 
 """
     RasterCoeff(mesh)
@@ -164,6 +177,7 @@ type IntermediateCoeff <: RasterCoeffTypes
 end
 
 size(coeff::IntermediateCoeff) = (length(coeff.data),)
+size(::Type{IntermediateCoeff}, raster::Raster) = (glen(raster),)
 
 """
     IntermediateCoeff(raster, coeff)
