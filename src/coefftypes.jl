@@ -3,7 +3,7 @@
 
 # Import
 import Base: convert, size, linearindexing, getindex, setindex!, zero, similar,
-  zero, one
+  zero, one, fill
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
