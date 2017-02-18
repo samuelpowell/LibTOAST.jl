@@ -32,10 +32,10 @@ function __init__()
   # cxxinclude("source.h")          # Source and detector profiles
 
   # Import dynamic libraries: libsuperlu, libmath, libfe
-  Libdl.dlopen(_jl_toast_libsuperlu)
-  Libdl.dlopen(_jl_toast_libmath)
-  Libdl.dlopen(_jl_toast_libfe)
-  Libdl.dlopen(_jl_toast_libstoast)
+  Libdl.dlopen(_jl_toast_libsuperlu, Libdl.RTLD_GLOBAL)
+  Libdl.dlopen(_jl_toast_libmath, Libdl.RTLD_GLOBAL)
+  Libdl.dlopen(_jl_toast_libfe, Libdl.RTLD_GLOBAL)
+  Libdl.dlopen(_jl_toast_libstoast, Libdl.RTLD_GLOBAL)
 
   # Initialise Toast++ thread pool
   @cxx Task_Init(0)
