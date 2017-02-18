@@ -1,7 +1,7 @@
 # TOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
-# Export integral enumerations
+# Export integral enumerations (see mesh.h)
 export BilinearIntegrals, FF, DD, BNDFF
 export BilinearParamIntegrals, PFF, PDD, BNDPFF
 export LinearParamIntegrals, P, PF, BNDPFF
@@ -136,6 +136,60 @@ function assemble!(sysmat::SystemMatrix,
   icxx"""
     RVector prm($nprm, $pprm, SHALLOW_COPY);
     AddToSysMatrix (*$(sysmat.mesh.ptr), *$(sysmat.ptr), &prm, $mode);
+  """
+
+  return nothing
+
+end
+
+"""
+    assemble(mesh, integral, parameter)
+
+Construct a new RHS and assemble the linear form over the `mesh`, as specified
+by the `integral` and associated `parameter`.
+
+# Arguments
+* `mesh::Mesh`: a TOAST mesh
+* `integral::LinearParamIntegrals`: the desired integral
+* `parameter::NodalCoeff`: a function in the nodal basis
+"""
+function assemble(mesh::Mesh, int::LinearParamIntegrals, param::NodalCoeff)
+  rhs = zero(NodalCoeff, mesh)
+  assemble!(rhs, int, param)
+  return rhs
+end
+
+"""
+    assemble!(rhs, integral, parameter)
+
+Assemble the bilinear form over the mesh as specified by the `integral` and
+associated `parameter`, add the result to the provided NodalCoeff vector `rhs`.
+
+# Arguments
+* `rhs::NodalCoeff`: a nodal coefficient vector
+* `integral::LinearParamIntegrals`: the desired integral
+* `parameter::NodalCoeff`: a function in the nodal basis
+"""
+function assemble!(rhs::NodalCoeff,
+                   int::LinearParamIntegrals,
+                   param::NodalCoeff)
+
+  assert(param.mesh == rhs.mesh)
+
+  nprm = length(param)
+  pprm = pointer(param.data)
+  prhs = pointer(rhs.data)
+  mode = Cint(int)
+  nnd = nodecount(rhs.mesh)
+
+  if nprm != nnd
+    error("Parameter vector length ($nprm) not equal to nodal basis ($nnd).")
+  end
+
+  icxx"""
+    RVector prm($nprm, $pprm, SHALLOW_COPY);
+    RVector rhs($nprm, $prhs, SHALLOW_COPY);
+    AddToRHS_elasticity (*$(sysmat.mesh.ptr), &rhs, &prm, $mode);
   """
 
   return nothing
