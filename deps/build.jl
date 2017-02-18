@@ -11,20 +11,19 @@ mkpath(prefix)
 if is_apple()
   osroot = "darwin"
   oslibn = ".dylib"
-  suffix = ".zip"
 end
 
 if is_windows()
   osroot = "windows"
   oslibn = ".dll"
-  suffix = ".zip"
 end
 
 if is_linux()
   osroot = "linux"
   oslibn = ".so"
-  suffix = ".tar.gz"
 end
+
+suffix = ".zip"
 
 srcroot = "https://github.com/toastpp/toastpp/archive/"
 srcfile = toastv * suffix
@@ -43,15 +42,20 @@ download(dlroot * dlfile, joinpath(prefix, dlfile))
 # Unzip
 info("Uncompressing Toast++ source and binaries")
 if is_linux()
-  run(`tar xzvf $(joinpath(prefix, dlfile)) -C $prefix`)
-  run(`tar xzvf $(joinpath(prefix, srcfile)) -C $prefix`)
+  run(`unzip -o $(joinpath(prefix, dlfile)) -d $prefix`)
+  run(`unzip -o $(joinpath(prefix, srcfile)) -d $prefix`)
 else
   run(`unzip -o $(joinpath(prefix, dlfile)) -d $prefix`)
   run(`unzip -o $(joinpath(prefix, srcfile)) -d $prefix`)
 end
 
-run(`cp -r $(joinpath(prefix, "toast", osroot * "64" )) $(joinpath(prefix, "toastpp-" * toastn))`)
-run(`rm -rf $(joinpath(prefix, "toast"))`)
+if is_linux()
+  run(`cp -r $(joinpath(prefix, osroot * "64" )) $(joinpath(prefix, "toastpp-" * toastn))`)
+  run(`rm -rf $(joinpath(prefix, osroot * "64"))`)
+else
+  run(`cp -r $(joinpath(prefix, "toast", osroot * "64" )) $(joinpath(prefix, "toastpp-" * toastn))`)
+  run(`rm -rf $(joinpath(prefix, "toast"))`)
+end
 
 # Remove temporary download
 info("Deleteing temporary files")
