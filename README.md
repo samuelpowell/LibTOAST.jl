@@ -1,10 +1,16 @@
 # TOAST.jl
 
-TOAST.jl is a low-level inteface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modeling and image reconstruction in Diffuse Optical Tomography (DOT), the TOAST.jl interface simply provides an interface to its underlying  finite-elemenent, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a seperate Julia package.
+TOAST.jl is a low-level inteface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modeling and image reconstruction in Diffuse Optical Tomography (DOT), the TOAST.jl interface provides an interface to a subset of its underlying finite-elemenent, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a seperate Julia package.
+
+TOAST.jl allows one to easily:
+
+1. solve second order partial differential equations in two- and three-dimensions using the (Galerkin) Finite Element Method;
+2. map functions between unstructured meshes and alternative bases (e.g. pixels, voxels) defined in a unfirom rasterisation;
+3. evaluate the value and derivatives of a number of spatial regularisation functionals for functions in a raster.
 
 ## Compatibilty
 
-TOAST.jl directly calls the underlying C++ library using [Cxx.jl](https://github.com/Keno/Cxx.jl) which is currently supported only on Linux and OS X. Windows support is expected with the release of Julia 0.6.
+TOAST.jl directly calls the underlying C++ library using [Cxx.jl](https://github.com/Keno/Cxx.jl) which is currently supported only on Linux and macOS. Windows support is *expected* with the release of Julia 0.6.
 
 ## Installation
 
@@ -29,38 +35,43 @@ By means of an introduction, we will use TOAST.jl to solve a lossy diffusion equ
 [-∇⋅κ(r)∇ + μ(r)] ϕ(r) = 0 (r ∈ Ω),
 ```
 
-with a Robin condition on the boundary
+with a Robin condition on the boundary δΩ
 
 ```
 ϕ(r) + γ n⋅∇ϕ(r) = q(r) (r ∈ δΩ),
 ```
 
-where `n` is the unit outward normal to the boundary. To solve this PDE numerically by the finite element method we subdivide the domain into a set of non-overlapping elements joined at N vertex nodes, and represent the discrete solution in a piecewise linear basis
+where `n` is the unit outward normal to the boundary. Solving this PDE numerically using the (Galerkin) Finite Element Method can be achieved as follows:
+
+1. find the weak form of the equation through multiplication by a test function and integration by parts;
+2. subdvide the domain into a mesh of nonoverlapping elements joined at N vertex nodes, and define a set of basis functions over this domain;
+3. choose the test functions in the weak formulation to be the same as the bash basis;
+4. approximate the solution and the parameters parameters in the same basis, e.g, 
 
 ```
-ϕ(r) ≈ ϕʰ(r) = ∑_i ϕᵢ uᵢ(r)
+ϕ(r) ≈ ϕʰ(r) = ∑ᵢ ϕᵢ uᵢ(r).
 ```
 
-We represent approximations to the parameters γ(r), κ(r), and μ(r) in the same basis. Application of the Galerkin method to the continuous PDE yields the following matrix equation,
+We further assume that we have a representation of the parameters γ(r), κ(r), and μ(r) in the same basis. In performing this process we arrive at a linear system of equations
 
 ```
-S ϕ = Q
+S ϕ = Q,
 ```
 
 where the system matrix `S = K + M + F` is calculated as
 
 ```
-Kᵢⱼ = ∑_k κ_k ∫_Ω  u_k(r) ∇uᵢ(r)⋅∇uⱼ(r) dr
-Mᵢⱼ = ∑_k μ_k ∫_Ω  u_k(r)  uᵢ(r) uⱼ(r) dr
-Fᵢⱼ = ∑_k γ_k ∫_δΩ u_k(r) uᵢ(r) uⱼ(r) dr
+Kᵢⱼ = ∑ᵥ κᵥ ∫_Ω  uᵥ(r) ∇uᵢ(r)⋅∇uⱼ(r) dr,
+Mᵢⱼ = ∑ᵥ μᵥ ∫_Ω  uᵥ(r) uᵢ(r) uⱼ(r) dr,
+Fᵢⱼ = ∑ᵥ γᵥ ∫_δΩ uᵥ(r) uᵢ(r) uⱼ(r) dr,
 ```
 and
 
 ```
-Qᵢ = ∑_i qᵢ ∫_δΩ uᵢ(r)
+Qᵢ = ∑ᵢ qᵢ ∫_δΩ uᵢ(r) dr.
 ```
 
-We will now proceed to find the vector of nodal solution coefficeints, ϕ, by assembling the relevant matrices and source vectors using the TOAST.jl interface to TOAST++.
+Items (1) - (4) are typically performed by hand. The core utility of the finite-element functionality of TOAST.jl is to manage the mesh, compute the integrals of various products of basis functions, and assemble the matrices required to find the vector of nodal solutions, ϕ. We will demonstrate this process in the following five steps.
 
 ### 1. Load the TOAST module
 
@@ -103,13 +114,13 @@ julia> ζ = fill(NodalCoeff, mesh, 0.5);
 
 ### 4. Build the system matrix
 
-To build the system matrix we first intatiate a `SystemMatrix`
+To build the system matrix we first instatiate a `SystemMatrix`
 
 ```
 julia> S = SystemMatrix(mesh)
 ```
 
-which is a thin wrapper around a compressed sparse row (CSR) matrix used by TOAST. Since Julia's native sparse arrays are compressed sparse column (CSC) TOAST.jl uses this wrapper until the final matrix is ready for use, this allows us to add components of the system matrix in-place without additional allocations.
+which is a thin wrapper around a compressed sparse row (CSR) matrix used by TOAST. Since Julia's native sparse arrays are compressed sparse column (CSC) TOAST.jl, uses this wrapper until the final matrix is ready for use, this allows us to add components of the system matrix in-place without additional allocations.
 
 We now assemble and add each of the components to the system matrix.
 
@@ -143,7 +154,7 @@ where vtx will be a `nodecount(mesh) x dimension(mesh)` matrix of vertices. We m
 julia> source = NodalCoeff(mesh, 1./((vtx[:,1]^2 + vtx[:,2]^2) + 0.1 )
 ```
 
-before projecting this into the mesh
+before projecting this into the mesh basis
 
 ```
 julia> Q = assemble(mesh, P, source)
@@ -151,99 +162,145 @@ julia> Q = assemble(mesh, P, source)
 
 ### 5. Solve the system
 
-The resultant system `Sϕ = Q` can be solved using your method of preference. For example, we can simply rely upon Julia's backslash operator to determine the properties of the system matrix and undertake a suitable direct solve.
+The resultant system of equations can be solved using your method of preference. For example, we can simply rely upon Julia's backslash operator to determine the properties of the system matrix and undertake a suitable direct solve.
 
 ```
-julia> ϕ = sysmat\q
+julia> ϕ = sparse(S)\q
 ```
 
-## Concepts
-
-## Types and Methods
+## Concepts, Types, and Methods
 
 ### Meshes and the FE subspace
 
-In TOAST the mesh and the underlying finite-element subspace are tightly coupled. 
+In TOAST++ the mesh and the underlying finite-element subspace are tightly coupled: the type of the finite-element is chosen during initisation of the mesh. TOAST.jl only supports homogenous meshes of piecewise-linear triangular (2D) or tetrahedral (3D) meshes. Element-wise assembly is a planned feature.
+
+Meshes can be specified by supplying two parameters:
+
+1. a matrix containing the location of each vertex;
+2. an matrix descirbing the element connectivity (the vertices belonging to each element). 
+
+For example, suppose `vtx` is a number-of-vertices x 3 matrix of vertices, and `ele` is a number-of-elements x 4 matrix defining the element connectivity, then we may construct a mesh of tetrahedral elements as follows.
+
+```
+mesh = Mesh(vtx, ele)
+```
+
+The following tabulates some important methods which operate on meshes, see inline help for details of the arguments and return types. 
+
+| Function    | Purpose                                                                             |
+|-------------|-------------------------------------------------------------------------------------|
+| load        | Load a mesh from disk                                                               |
+| save        | Save a mesh to disk                                                                 |
+| nodecount   | The number of nodes in the mesh                                                     |
+| elemcount   | The number of elements in the mesh                                                  |
+| dimensions  | The dimensionality of the mesh                                                      |
+| boundingbox | Dimensions of a bounding box (square, cube) that encloses the mesh                  |
+| fullsize    | The area or volume of the mesh                                                      |
+| data        | Returns the vertices, element connectivity and element type of the mesh             |
+| surface     | Extract and return the vertices and element connectivity of the surface of the mesh |
+| assemble(!) | Build a sparse matrix or a vector of assembled element integrals                    |
 
 ### Assembly
+
+TOAST++ like most general purpose finite element libraries, allows the user to assemble system matrices and right hand side vectors by computing local integrals over elements, and assembling these contributions into the global system matrix.
+
+At present, the TOAST.jl interface only exposes the ability to compute the fully assembled matrices in a single step. One advantage of this approach is that the back-end library can perform multi-threaded assembly (Julia's multi-threading capabilities are still experimental).
+
+The nature of the assembly, and the domain of the integration, is specified by an integration symbol that is defined as one of three enumerations: LinearIntegrals, BilinearIntegrals, and BilinearParamIntegrals. Assembly is performed by one of the following methods:
+
+1. `assemble(mesh, integral [, parameter])`;
+2. `assemble!(sysmat, integral [, parameter])`.
+
+Method (1) creates a new `SystemMatrix` object and adds the contirbutions from the specified integral. Method (2) adds the contirbution to an existing `SystemMatrix` object, in-place.
+
+The purpose of the `SystemMatrix` type is described in part (4) of the first example in this document.
 
 #### Assembly types
 
 TOAST.jl supports the assembly of the following bilinear forms
 
-* FF: Sᵢⱼ = ∫_Ω  uᵢ(r) uⱼ(r) dr
-* DD: Sᵢⱼ = ∫_Ω  ∇uᵢ(r)⋅∇uⱼ(r) dr
-* PFF: Sᵢⱼ =  ∑_k f_k ∫_Ω  u_k(r) uᵢ(r) uⱼ(r) dr
-* PDD:  Sᵢⱼ = ∑_k f_k ∫_Ω  u_k(r) ∇uᵢ(r)⋅∇uⱼ(r) dr
-* BNDFF: Sᵢⱼ = ∫_δΩ   uᵢ(r) uⱼ(r) dr
-* BNFPFF: Sᵢⱼ = ∑_k f_k ∫_δΩ  u_k(r) ∇uᵢ(r)⋅∇uⱼ(r) dr
+| Symbol | Integral                                | Domain |
+|--------|-----------------------------------------|--------|
+| FF     | Sᵢⱼ = ∫ uᵢ(r) uⱼ(r) dr                  | Ω      |
+| DD     | Sᵢⱼ = ∫ ∇uᵢ(r)⋅∇uⱼ(r) dr                | Ω      |
+| PFF    | Sᵢⱼ = ∑ᵥ fᵥ ∫ uᵥ(r) uᵢ(r) uⱼ(r) dr      | Ω      |
+| PDD    | Sᵢⱼ = ∑ᵥ fᵥ ∫ uᵥ(r) ∇uᵢ(r)⋅∇uⱼ(r) dr    | Ω      |
+| BNDPFF | Sᵢⱼ = ∫ uᵢ(r) uⱼ(r) dr                  | δΩ     |
+| BNDPFF | Sᵢⱼ = ∑ᵥ fᵥ ∫ uᵥ(r) ∇uᵢ(r)⋅∇uⱼ(r) dr    | δΩ     |
 
 and the following linear forms
 
-* F: Qᵢ = ∫_Ω  uᵢ(r) dr
-* PF: Qᵢ =  ∑_k f_k ∫_Ω  u_k(r) uᵢ(r) dr
-* BNDF: Qᵢ = ∑_k f_k ∫_δΩ  u_k(r) uᵢ(r) dr
+| Symbol | Integral                                | Domain |
+|--------|-----------------------------------------|--------|
+| F      | Qᵢ = ∫ uᵢ(r) dr                         | Ω      |
+| PF     | Qᵢ = ∑ᵥ fᵥ ∫ uᵥ(r) uᵢ(r) dr             | Ω      |
+| BNDPFF | Qᵢ = ∑ᵥ fᵥ ∫ uᵥ(r) uᵢ(r) dr             | δΩ     |
 
 ### Rasters
 
-TOAST++ is designed to allow solution of the inverse problem in DOT, which consists of estimating the parameters of the PDE from knowledge of solutions. It is convenient to perform this reconstruction in a pixel- or voxel-wise representation of the domain, rahter than directly in the mesh basis.
+TOAST++ is designed to allow solution of the inverse problem in DOT, which consists of estimating the parameters of the PDE from knowledge of solutions. It is convenient to perform this image reconstruction process in a pixel- or voxel-wise representation of the domain, rahter than directly in the mesh basis.
 
 To this end, TOAST++ provides a technique by which to define a raster of pixels/voxels (and indeed, other functions such as radial basis functions) over support of the underlying domain.
 
 A raster provides three bases:
 
-1. raster basis (b), which is a uniform rasterisation over the bounding box of the mesh
-2. solution basis (s), which is the same as the raster, but excludes raster elements which are not in the support of the mesh
+1. raster basis (b), which is a uniform rasterisation over the bounding box of the mesh;
+2. solution basis (s), which is the same as the raster, but excludes raster elements which are not in the support of the mesh;
 3. intermediate basis (g), which is a higher resolution version of the raster basis, used to improve the quality of the mapping between.
 
 
-To construct a raster of pixsels over a given `mesh`
+To construct a raster of pixels over a given `mesh`
 
 ```
-raster = Raster(mesh, Pixel)
+julia> raster = Raster(mesh, Pixel)
 ```
 
-One may then map a function `fm` defined on the mesh (as a NodalCoeff type) to the various raster bases
+One may then map a function `fm` defined on the mesh (as a `NodalCoeff` type) to the various raster bases
 
 ```
-fr = RasterCoeff(raster, fm)
-fs = SolutionCoeff(raster, function)
-fc = IntermediateCoeff(raster, function)
+julia> fr = RasterCoeff(raster, fm)
+julia> fs = SolutionCoeff(raster, fm)
+julia> fc = IntermediateCoeff(raster, fm)
 ```
 
 and back again
 
 ```
-fm = NodalCoeff(fr)
+julia> fm = NodalCoeff(fr)
 ```
 
 Alternatively, one may map in-place
 
 ```
-fr = RasterCoeff(raster)
-map!(fr, fm)
-map!(fm, fr)
+julia> fr = RasterCoeff(raster)
+julia> map!(fr, fm)
+julia> map!(fm, fr)
 ```
 
 ### Regularisation
 
-TOAST++ provides the functionality to calculate the value, gradient and Hessian of various regularisation functionals. The TOAST.jl interface provides access to a subset of these functionals:
+TOAST++ provides the functionality to calculate the value, gradient and Hessian of various regularisation functionals. The TOAST.jl interface provides access to a subset of these functionals.
 
-* TK0: zeroth-order Tikhonov
-* TK1: first-order Tikhonov
-* TV: total-variation (soft)
-* PM: Perona-Malik
+| Symbol | Type                    | Value            |
+|--------|-------------------------|------------------|
+| TK0    | Tikhonov (zeroth-order) | `|| x-x₀ ||²`    |
+| TK1    | Tikhonov (first-order)  | `|| ∇(x-x₀) ||²` |
+| TV     | Soft Total-Variation    |                  |
+| PM     | Perona-Malik            |                  |
 
-The functionals are initialised with a baseline parameter in the solution basis of a raster, e.g.,
+The functionals are initialised with a baseline parameter in the *solution basis of a raster*, e.g.,
 
 ```
-reg = Regularisation(TK0, x0)
+julia> reg = Regularisation(TK0, x0)
 ```
 
 subsequently, one may compute the value, gradient and Hessian as follows
 
 ```
-value(reg, x)
-grad(reg, x)
-hess(reg, x)
+julia> value(reg, x)
+julia> grad(reg, x)
+julia> hess(reg, x)
 ```
+
+
+
