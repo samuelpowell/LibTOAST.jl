@@ -1,11 +1,11 @@
 # TOAST.jl
 
-TOAST.jl is a low-level inteface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modeling and image reconstruction in Diffuse Optical Tomography (DOT), the TOAST.jl interface provides an interface to a subset of its underlying finite-elemenent, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a seperate Julia package.
+TOAST.jl is a low-level interface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modelling and image reconstruction in Diffuse Optical Tomography (DOT), the TOAST.jl interface provides an interface to a subset of its underlying finite-elemenent, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a separate Julia package.
 
 TOAST.jl allows one to easily:
 
 1. solve second order partial differential equations in two- and three-dimensions using the (Galerkin) Finite Element Method;
-2. map functions between unstructured meshes and alternative bases (e.g. pixels, voxels) defined in a unfirom rasterisation;
+2. map functions between unstructured meshes and alternative bases (e.g. pixels, voxels) defined in a uniform rasterisation;
 3. evaluate the value and derivatives of a number of spatial regularisation functionals for functions in a raster.
 
 ## Compatibilty
@@ -44,7 +44,7 @@ with a Robin condition on the boundary δΩ
 where `n` is the unit outward normal to the boundary. Solving this PDE numerically using the (Galerkin) Finite Element Method can be achieved as follows:
 
 1. find the weak form of the equation through multiplication by a test function and integration by parts;
-2. subdvide the domain into a mesh of nonoverlapping elements joined at N vertex nodes, and define a set of basis functions over this domain;
+2. subdivide the domain into a mesh of non-overlapping elements joined at N vertex nodes, and define a set of basis functions over this domain;
 3. choose the test functions in the weak formulation to be the same as the bash basis;
 4. approximate the solution and the parameters parameters in the same basis, e.g, 
 
@@ -114,7 +114,7 @@ julia> ζ = fill(NodalCoeff, mesh, 0.5);
 
 ### 4. Build the system matrix
 
-To build the system matrix we first instatiate a `SystemMatrix`
+To build the system matrix we first instantiate a `SystemMatrix`
 
 ```
 julia> S = SystemMatrix(mesh)
@@ -130,7 +130,7 @@ julia> assemble!(S, PFF, μ);
 julia> assemble!(S, BNDPFF, ζ);
 ```
 
-The second input to the `assemble!` method defines the integral to be performed. The available integrals are enumerated later, but for now it will suffice to understand that `P` represents a paraemter in the mesh basis, `F` represents a basis function, `D` represents a derivative of a basis function, and the `BND` prefix indicates the integration is only over the boundary.
+The second input to the `assemble!` method defines the integral to be performed. The available integrals are enumerated later, but for now it will suffice to understand that `P` represents a parameter in the mesh basis, `F` represents a basis function, `D` represents a derivative of a basis function, and the `BND` prefix indicates the integration is only over the boundary.
 
 When we are finally ready to use the system matrix in Julia, we can do so as follows.
 
@@ -148,7 +148,7 @@ First, we construct the source function in space. To begin, we need to extract t
 julia> vtx, = data(mesh)
 ```
 
-where vtx will be a `nodecount(mesh) x dimension(mesh)` matrix of vertices. We may now construct a source function which depends upon this geometry
+where `vtx` will be a `nodecount(mesh) x dimension(mesh)` matrix of vertices. We may now construct a source function which depends upon this geometry
 
 ```
 julia> source = NodalCoeff(mesh, 1./((vtx[:,1].^2 + vtx[:,2].^2) + 0.1 ))
@@ -172,12 +172,12 @@ julia> ϕ = sparse(S)\q
 
 ### Meshes and the FE subspace
 
-In TOAST++ the mesh and the underlying finite-element subspace are tightly coupled: the type of the finite-element is chosen during initisation of the mesh. TOAST.jl only supports homogenous meshes of piecewise-linear triangular (2D) or tetrahedral (3D) meshes. Element-wise assembly is a planned feature.
+In TOAST++ the mesh and the underlying finite-element subspace are tightly coupled: the type of the finite-element is chosen during initialisation of the mesh. TOAST.jl only supports homogenous meshes of piecewise-linear triangular (2D) or tetrahedral (3D) meshes. Element-wise assembly is a planned feature.
 
 Meshes can be specified by supplying two parameters:
 
 1. a matrix containing the location of each vertex;
-2. an matrix descirbing the element connectivity (the vertices belonging to each element). 
+2. an matrix describing the element connectivity (the vertices belonging to each element). 
 
 For example, suppose `vtx` is a number-of-vertices x 3 matrix of vertices, and `ele` is a number-of-elements x 4 matrix defining the element connectivity, then we may construct a mesh of tetrahedral elements as follows.
 
@@ -211,7 +211,7 @@ The nature of the assembly, and the domain of the integration, is specified by a
 1. `assemble(mesh, integral [, parameter])`;
 2. `assemble!(sysmat, integral [, parameter])`.
 
-Method (1) creates a new `SystemMatrix` object and adds the contirbutions from the specified integral. Method (2) adds the contirbution to an existing `SystemMatrix` object, in-place.
+Method (1) creates a new `SystemMatrix` object and adds the contributions from the specified integral. Method (2) adds the contribution to an existing `SystemMatrix` object, in-place.
 
 The purpose of the `SystemMatrix` type is described in part (4) of the first example in this document.
 
@@ -238,7 +238,7 @@ and the following linear forms
 
 ### Rasters
 
-TOAST++ is designed to allow solution of the inverse problem in DOT, which consists of estimating the parameters of the PDE from knowledge of solutions. It is convenient to perform this image reconstruction process in a pixel- or voxel-wise representation of the domain, rahter than directly in the mesh basis.
+TOAST++ is designed to allow solution of the inverse problem in DOT, which consists of estimating the parameters of the PDE from knowledge of solutions. It is convenient to perform this image reconstruction process in a pixel- or voxel-wise representation of the domain, rather than directly in the mesh basis.
 
 To this end, TOAST++ provides a technique by which to define a raster of pixels/voxels (and indeed, other functions such as radial basis functions) over support of the underlying domain.
 
