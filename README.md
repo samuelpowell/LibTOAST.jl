@@ -151,7 +151,7 @@ julia> vtx, = data(mesh)
 where vtx will be a `nodecount(mesh) x dimension(mesh)` matrix of vertices. We may now construct a source function which depends upon this geometry
 
 ```
-julia> source = NodalCoeff(mesh, 1./((vtx[:,1]^2 + vtx[:,2]^2) + 0.1 )
+julia> source = NodalCoeff(mesh, 1./((vtx[:,1].^2 + vtx[:,2].^2) + 0.1 ))
 ```
 
 before projecting this into the mesh basis
