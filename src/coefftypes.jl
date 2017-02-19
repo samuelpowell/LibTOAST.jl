@@ -3,7 +3,7 @@
 
 # Import
 import Base: convert, size, linearindexing, getindex, setindex!, zero, similar,
-  zero, one, fill
+  zero, one, fill, \
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -42,6 +42,8 @@ Base.similar{Te}(coeff::NodalCoeff, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.m
 size(coeff::NodalCoeff) = (length(coeff.data),)
 getindex(coeff::NodalCoeff, i::Int) = coeff.data[i]
 setindex!(coeff::NodalCoeff, v, i::Int) = (coeff.data[i] = v)
+
+\(A::SparseMatrixCSC, q::NodalCoeff) = A\q.data
 
 """
     one(NodalCoeff, mesh)
