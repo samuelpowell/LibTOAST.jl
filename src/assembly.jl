@@ -4,7 +4,10 @@
 # Export integral enumerations (see mesh.h)
 export BilinearIntegrals, FF, DD, BNDFF
 export BilinearParamIntegrals, PFF, PDD, BNDPFF
-export LinearParamIntegrals, P, PF, BNDPFF
+export LinearParamIntegrals, P, PF, BNDPF
+
+# Export special purpose assembly types
+export PointSource
 
 # Methods
 export assemble, assemble!
@@ -57,6 +60,13 @@ Where ``uᵢ(r)`` is the basis function for the ``i``th node, and ``d(δΩ)``
 indicates integration only over boundary nodes.
 """
 @enum LinearParamIntegrals P=0 PF=1 BNDPF=2
+
+"""
+  PointSource
+
+A singleton type used to dispatch the assembly of a point source right hand side
+"""
+type PointSource end
 
 """
     assemble(mesh, integral)
@@ -186,12 +196,52 @@ function assemble!(rhs::NodalCoeff,
     error("Parameter vector length ($nprm) not equal to nodal basis ($nnd).")
   end
 
-  icxx"""
-    RVector prm($nprm, $pprm, SHALLOW_COPY);
-    RVector rhs($nprm, $prhs, SHALLOW_COPY);
-    AddToRHS_elasticity (*$(sysmat.mesh.ptr), &rhs, &prm, $mode);
-  """
+  #
+  # icxx"""
+  #   RVector prm($nprm, $pprm, SHALLOW_COPY);
+  #   RVector rhs($nprm, $prhs, SHALLOW_COPY);
+  #   AddToRHS_elasticity (*$(rhs.mesh.ptr), rhs, &prm, $mode);
+  # """
+
+  error("Linear integral assembly not implemented")
 
   return nothing
+
+end
+
+"""
+    assemble(mesh, PointSource, centre)
+
+Special purpose assembly function to generate an right hand side source vector
+representing a unitary isotropic point source at the specified centre location.
+"""
+function assemble(mesh, ::Type{PointSource}, centre)
+
+  rhs = zero(NodalCoeff, mesh)
+
+  prhs = pointer(rhs.data)
+  nvtx = nodecount(mesh)
+  pcnt = pointer(centre)
+  ncnt = length(centre)
+
+  assert(ncnt == dimensions(mesh))
+
+  icxx"""
+    // Copy the center location to a Toast pointer
+    Point *cnt = NULL;
+
+    if($ncnt == 2)
+      cnt = new Point2D($(pcnt)[0], $(pcnt)[1]);
+
+    if($ncnt == 3)
+      cnt = new Point3D($(pcnt)[0], $(pcnt)[1], $(pcnt)[2]);
+
+    RVector qm($nvtx, $prhs, SHALLOW_COPY);
+    qm = QVec_Point(*$(mesh.ptr), *cnt, SRCMODE_ISOTROPIC);
+
+    delete cnt;
+  """
+
+  return rhs
 
 end
