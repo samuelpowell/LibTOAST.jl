@@ -7,7 +7,8 @@ export BilinearParamIntegrals, PFF, PDD, BNDPFF
 export LinearParamIntegrals, P, PF, BNDPF
 
 # Export special purpose assembly types
-export PointSource
+export Source, PointSource, GaussianSource
+export SourceTypes, Neumann, Isotropic
 
 # Methods
 export assemble, assemble!
@@ -62,11 +63,71 @@ indicates integration only over boundary nodes.
 @enum LinearParamIntegrals P=0 PF=1 BNDPF=2
 
 """
-  PointSource
+    SourceTypes
 
-A singleton type used to dispatch the assembly of a point source right hand side
+An enumeration of source types, Isotropic, or Neumann.
 """
-type PointSource end
+@enum SourceTypes Neumann Isotropic
+
+abstract Source
+
+"""
+  PointSource(mesh, centre, sourcetype=Isotropic)
+
+Represent a unitary point source at a specified location in the mesh, used in
+special-purpose RHS assembly functions.
+
+# Constructor arguments
+* `mesh`: a TOAST mesh upon which this source is applied
+* `centre`: centre point of the Guassian
+* `sourcetype::SourceTypes`: `Isotropic`, or `Neumann` (see SourceTypes).
+"""
+type PointSource <: Source
+
+  mesh::Mesh
+  centre::Vector{Float64}
+  sourcetype::SourceTypes
+
+  function PointSource(mesh::Mesh,
+                       centre::Vector{Float64},
+                       sourcetype::SourceTypes=Isotropic)
+
+    assert(length(centre) == dimensions(mesh))
+    return new(mesh, centre, sourcetype)
+
+  end
+
+end
+
+"""
+  GaussianSource(mesh, centre, width, sourcetype)
+
+Represent a unitary Gausian source at a specified location, used in
+special-purpose RHS assembly functions.
+
+# Constructor arguments
+* `mesh`: a TOAST mesh upon which this source is applied
+* `centre`: centre point of the Guassian
+* `width`: full-width half maximum of the Guassian source
+* `sourcetype::SourceTypes`: `Isotropic`, or `Neumann` (see SourceTypes).
+"""
+type GaussianSource <: Source
+  mesh::Mesh
+  centre::Vector{Float64}
+  width::Float64
+  sourcetype::SourceTypes
+
+  function GaussianSource(mesh::Mesh,
+                          centre::Vector{Float64},
+                          width::Float64,
+                          sourcetype::SourceTypes)
+
+    assert(length(centre) == dimensions(mesh))
+    return new(mesh, centre, width, sourcetype)
+
+  end
+
+end
 
 """
     assemble(mesh, integral)
@@ -210,21 +271,24 @@ function assemble!(rhs::NodalCoeff,
 end
 
 """
-    assemble(mesh, PointSource, centre)
+    assemble(source)
 
 Special purpose assembly function to generate an right hand side source vector
-representing a unitary isotropic point source at the specified centre location.
+from a source specification conforming to the `Sources` supertype.
 """
-function assemble(mesh, ::Type{PointSource}, centre)
+function assemble{T<:Source}(source::T)
 
-  rhs = zero(NodalCoeff, mesh)
+  rhs = zero(NodalCoeff, source.mesh)
 
   prhs = pointer(rhs.data)
-  nvtx = nodecount(mesh)
-  pcnt = pointer(centre)
-  ncnt = length(centre)
+  nvtx = nodecount(source.mesh)
+  pcnt = pointer(source.centre)
+  ncnt = length(source.centre)
 
-  assert(ncnt == dimensions(mesh))
+  prof = Cint( T == PointSource ? 0 : 1)
+  mode = Cint( source.sourcetype )
+
+  width = (T == PointSource) ? 0.0 : source.width
 
   icxx"""
     // Copy the center location to a Toast pointer
@@ -236,8 +300,24 @@ function assemble(mesh, ::Type{PointSource}, centre)
     if($ncnt == 3)
       cnt = new Point3D($(pcnt)[0], $(pcnt)[1], $(pcnt)[2]);
 
+    SourceMode mode = $(mode) == 0 ? SRCMODE_NEUMANN : SRCMODE_ISOTROPIC;
+
+    // Create a vector mapped to input buffer
     RVector qm($nvtx, $prhs, SHALLOW_COPY);
-    qm = QVec_Point(*$(mesh.ptr), *cnt, SRCMODE_ISOTROPIC);
+
+    // Build the vector, copy it to the linked buffer
+    switch ($(prof))
+    {
+      case PROFILE_POINT:
+        qm = QVec_Point(*$(source.mesh.ptr), *cnt, mode);
+        break;
+      case PROFILE_GAUSSIAN:
+        qm = QVec_Gaussian(*$(source.mesh.ptr), *cnt, $(width), mode);
+        break;
+      case PROFILE_COSINE:
+        qm = QVec_Cosine(*$(source.mesh.ptr), *cnt, $(width), mode);
+        break;
+    }
 
     delete cnt;
   """
