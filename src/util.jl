@@ -6,7 +6,7 @@
 function _CSR0_to_CSC1(m,n,rowptr,colidx,values)
 
   _CSR0_to_CSC1(m,n,rowptr,colidx,pointer(values))
-
+  
 end
 
 # Construct a one-based Julia CSC matrix from the row pointer, column index
@@ -18,8 +18,8 @@ function _CSR0_to_CSC1(m,n,rowptr,colidx,values::Ptr)
 
   # Array of pointers to row index, column pointer, real pointer
   cscval = Array{Float64}(length(colidx))
-  rowidx = Array{Int32}(length(colidx))
-  colptr = Array{Int32}(n+1)
+  rowidx = Array{Cint}(length(colidx))
+  colptr = Array{Cint}(n+1)
 
   icxx"""
     int i, j, k;
@@ -59,7 +59,7 @@ function _CSR0_to_CSC1(m,n,rowptr,colidx,values::Ptr)
     delete []rcount;
   """
 
-  # Build sparse with 1-based indexing
-  return SparseMatrixCSC(n,m,colptr+1,rowidx+1,cscval)
+  # Build sparse with 1-based indexing and Int size pointers
+  return SparseMatrixCSC(n,m,Vector{Int}(colptr+1),Vector{Int}(rowidx+1),cscval)
 
 end

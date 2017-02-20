@@ -4,7 +4,11 @@
 # Export integral enumerations (see mesh.h)
 export BilinearIntegrals, FF, DD, BNDFF
 export BilinearParamIntegrals, PFF, PDD, BNDPFF
-export LinearParamIntegrals, P, PF, BNDPFF
+export LinearParamIntegrals, P, PF, BNDPF
+
+# Export special purpose assembly types
+export Source, PointSource, GaussianSource
+export SourceTypes, Neumann, Isotropic
 
 # Methods
 export assemble, assemble!
@@ -57,6 +61,73 @@ Where ``uᵢ(r)`` is the basis function for the ``i``th node, and ``d(δΩ)``
 indicates integration only over boundary nodes.
 """
 @enum LinearParamIntegrals P=0 PF=1 BNDPF=2
+
+"""
+    SourceTypes
+
+An enumeration of source types, Isotropic, or Neumann.
+"""
+@enum SourceTypes Neumann Isotropic
+
+abstract Source
+
+"""
+  PointSource(mesh, centre, sourcetype=Isotropic)
+
+Represent a unitary point source at a specified location in the mesh, used in
+special-purpose RHS assembly functions.
+
+# Constructor arguments
+* `mesh`: a TOAST mesh upon which this source is applied
+* `centre`: centre point of the Guassian
+* `sourcetype::SourceTypes`: `Isotropic`, or `Neumann` (see SourceTypes).
+"""
+type PointSource <: Source
+
+  mesh::Mesh
+  centre::Vector{Float64}
+  sourcetype::SourceTypes
+
+  function PointSource(mesh::Mesh,
+                       centre::Vector{Float64},
+                       sourcetype::SourceTypes=Isotropic)
+
+    assert(length(centre) == dimensions(mesh))
+    return new(mesh, centre, sourcetype)
+
+  end
+
+end
+
+"""
+  GaussianSource(mesh, centre, width, sourcetype)
+
+Represent a unitary Gausian source at a specified location, used in
+special-purpose RHS assembly functions.
+
+# Constructor arguments
+* `mesh`: a TOAST mesh upon which this source is applied
+* `centre`: centre point of the Guassian
+* `width`: full-width half maximum of the Guassian source
+* `sourcetype::SourceTypes`: `Isotropic`, or `Neumann` (see SourceTypes).
+"""
+type GaussianSource <: Source
+  mesh::Mesh
+  centre::Vector{Float64}
+  width::Float64
+  sourcetype::SourceTypes
+
+  function GaussianSource(mesh::Mesh,
+                          centre::Vector{Float64},
+                          width::Float64,
+                          sourcetype::SourceTypes)
+
+    assert(length(centre) == dimensions(mesh))
+    return new(mesh, centre, width, sourcetype)
+
+  end
+
+end
 
 """
     assemble(mesh, integral)
@@ -186,12 +257,71 @@ function assemble!(rhs::NodalCoeff,
     error("Parameter vector length ($nprm) not equal to nodal basis ($nnd).")
   end
 
-  icxx"""
-    RVector prm($nprm, $pprm, SHALLOW_COPY);
-    RVector rhs($nprm, $prhs, SHALLOW_COPY);
-    AddToRHS_elasticity (*$(sysmat.mesh.ptr), &rhs, &prm, $mode);
-  """
+  #
+  # icxx"""
+  #   RVector prm($nprm, $pprm, SHALLOW_COPY);
+  #   RVector rhs($nprm, $prhs, SHALLOW_COPY);
+  #   AddToRHS_elasticity (*$(rhs.mesh.ptr), rhs, &prm, $mode);
+  # """
+
+  error("Linear integral assembly not implemented")
 
   return nothing
+
+end
+
+"""
+    assemble(source)
+
+Special purpose assembly function to generate an right hand side source vector
+from a source specification conforming to the `Sources` supertype.
+"""
+function assemble{T<:Source}(source::T)
+
+  rhs = zero(NodalCoeff, source.mesh)
+
+  prhs = pointer(rhs.data)
+  nvtx = nodecount(source.mesh)
+  pcnt = pointer(source.centre)
+  ncnt = length(source.centre)
+
+  prof = Cint( T == PointSource ? 0 : 1)
+  mode = Cint( source.sourcetype )
+
+  width = (T == PointSource) ? 0.0 : source.width
+
+  icxx"""
+    // Copy the center location to a Toast pointer
+    Point *cnt = NULL;
+
+    if($ncnt == 2)
+      cnt = new Point2D($(pcnt)[0], $(pcnt)[1]);
+
+    if($ncnt == 3)
+      cnt = new Point3D($(pcnt)[0], $(pcnt)[1], $(pcnt)[2]);
+
+    SourceMode mode = $(mode) == 0 ? SRCMODE_NEUMANN : SRCMODE_ISOTROPIC;
+
+    // Create a vector mapped to input buffer
+    RVector qm($nvtx, $prhs, SHALLOW_COPY);
+
+    // Build the vector, copy it to the linked buffer
+    switch ($(prof))
+    {
+      case PROFILE_POINT:
+        qm = QVec_Point(*$(source.mesh.ptr), *cnt, mode);
+        break;
+      case PROFILE_GAUSSIAN:
+        qm = QVec_Gaussian(*$(source.mesh.ptr), *cnt, $(width), mode);
+        break;
+      case PROFILE_COSINE:
+        qm = QVec_Cosine(*$(source.mesh.ptr), *cnt, $(width), mode);
+        break;
+    }
+
+    delete cnt;
+  """
+
+  return rhs
 
 end
