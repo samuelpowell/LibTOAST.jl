@@ -3,10 +3,12 @@
 
 # Import
 import Base: convert, size, linearindexing, getindex, setindex!, zero, similar,
-  zero, one, fill, \
+  zero, one, fill, \, gradient
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
+
+export gradient
 
 @enum MapTransforms _nb _ng _ns _bn _bg _bs _sn _sb _sg _gn _gs _gb
 
@@ -322,5 +324,49 @@ function _map!(ovec::Vector{Float64},
               break;
       }
   """
+
+end
+
+"""
+    gradient(coeff)
+
+Compute the spatial gradient of `coeff` which must be expressed in either an
+`RasterCoeff` or `IntermediateCoeff` basis.
+"""
+function gradient(coeff::IntermediateCoeff)
+
+  # TODO: Native implementaiton from ADMM.jl
+  ndim = dimensions(coeff.rast.mesh)
+  len = glen(coeff.rast)
+  rptr = coeff.rast.ptr
+  coptr = pointer(coeff.data)
+
+  ∇coeff = Array(Float64, len, ndim)
+  gcoptr = pointer(∇coeff)
+
+  icxx"""
+    const IVector &gdim = $(rptr)->GDim();
+    const RVector &gsize = $(rptr)->GSize();
+
+    RVector img($(len), $(coptr), SHALLOW_COPY);
+    RVector *imgrad = new RVector[$(ndim)];
+    ImageGradient(gdim, gsize, img, imgrad, $(rptr)->Elref());
+
+    for(int i = 0; i < $(len); i++)
+      $(gcoptr)[i] = imgrad[0][i];
+
+    for(int i=0; i < $(len); i++)
+      $(gcoptr)[i+$(len)] = imgrad[1][i];
+
+    if($ndim > 2)
+    {
+      for(int i=0; i < $(len); i++)
+        $(gcoptr)[i+(2*$(len))] = imgrad[2][i];
+    }
+
+    delete []imgrad;
+  """
+
+  return ∇coeff
 
 end
