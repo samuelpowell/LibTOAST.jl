@@ -8,7 +8,7 @@ import Base: string, print, show
 export Raster, PixelMap
 
 # Export methods
-export nlen, glen, blen, slen, map, gradient, bsize, bdim
+export nlen, glen, blen, slen, map, bsize, bdim
 
 """
     Raster
@@ -169,7 +169,7 @@ function bdim(raster::Raster)
 end
 
 """
-    belsize(raster)
+    bsize(raster)
 
 The `size` (area/volume) of each element of the raster basis.
 """
