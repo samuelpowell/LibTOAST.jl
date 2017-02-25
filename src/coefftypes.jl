@@ -23,12 +23,12 @@ export gradient
 Return a nodal coefficient array for a basis defined on the `mesh` initialised
 with the `coeff` vector of length equal to the number of nodes in the basis.
 """
-type NodalCoeff <: AbstractArray{Float64, 1}
+type NodalCoeff{T} <: AbstractArray{T, 1}
   mesh::Mesh
-  data::Vector{Float64}
-  function NodalCoeff(mesh::Mesh, data::Vector{Float64})
+  data::Vector{T}
+  function (::Type{NodalCoeff}){T}(mesh::Mesh, data::Vector{T})
     assert(length(data) == nodecount(mesh))
-    return new(mesh,data)
+    return new{T}(mesh,data)
   end
 end
 
@@ -37,10 +37,11 @@ end
 
 Return an uninitialised nodal coefficient array for a basis defined on the `mesh`.
 """
-NodalCoeff(mesh::Mesh) = NodalCoeff(mesh, Vector{Float64}(nodecount(mesh)))
+NodalCoeff(mesh::Mesh) = NodalCoeff(mesh, Float64)
+NodalCoeff{T}(mesh::Mesh, ::Type{T}) = NodalCoeff(mesh, Vector{T}(nodecount(mesh)))
 
 Base.linearindexing{T<:NodalCoeff}(::Type{T}) = Base.LinearFast()
-Base.similar{Te}(coeff::NodalCoeff, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.mesh)
+Base.similar{T,Te}(coeff::NodalCoeff{T}, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.mesh, T)
 size(coeff::NodalCoeff) = (length(coeff.data),)
 getindex(coeff::NodalCoeff, i::Int) = coeff.data[i]
 setindex!(coeff::NodalCoeff, v, i::Int) = (coeff.data[i] = v)
@@ -66,14 +67,13 @@ zero(::Type{NodalCoeff}, mesh::Mesh) = NodalCoeff(mesh, zeros(nodecount(mesh)))
 
 Return a constant function of `value` for a basis defined on the `mesh`.
 """
-function fill(::Type{NodalCoeff}, mesh::Mesh, value::Float64)
+function fill{T}(::Type{NodalCoeff}, mesh::Mesh, value::T)
   NodalCoeff(mesh, fill(value, nodecount(mesh)))
 end
 
 # Raster coefficients represent functions in one of the raster bases
-abstract RasterCoeffTypes <: AbstractArray{Float64, 1}
+abstract RasterCoeffTypes{T} <: AbstractArray{T, 1}
 Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
-Base.similar{T<:RasterCoeffTypes,Te}(coeff::T, ::Type{Te}, dims::Dims) = T(coeff.rast)
 getindex{T<:RasterCoeffTypes}(coeff::T, i::Int) = coeff.data[i]
 setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
 
@@ -109,15 +109,16 @@ end
 Return a coefficient array for the solution basis defined by the `raster`,
 initialised with the `coeff` vector of length equal to slen(raster).
 """
-type SolutionCoeff <: RasterCoeffTypes
+type SolutionCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
-  data::Vector{Float64}
-  function SolutionCoeff(rast::Raster, data::Vector{Float64})
+  data::Vector{T}
+  function (::Type{SolutionCoeff}){T}(rast::Raster, data::Vector{T})
     assert(length(data) == slen(rast))
-    return new(rast,data)
+    return new{T}(rast,data)
   end
 end
 
+Base.similar{T,Te}(coeff::SolutionCoeff{T}, ::Type{Te}, dims::Dims) = SolutionCoeff(coeff.rast, T)
 size(coeff::SolutionCoeff) = (length(coeff.data),)
 size(::Type{SolutionCoeff}, raster::Raster) = (slen(raster),)
 
@@ -126,13 +127,14 @@ size(::Type{SolutionCoeff}, raster::Raster) = (slen(raster),)
 
 Return an uninitialised coefficient array for solution basis defined by the `raster`.
 """
-function SolutionCoeff(rast::Raster, ci::NodalCoeff)
-  co = SolutionCoeff(rast)
+function SolutionCoeff{T}(rast::Raster, ci::NodalCoeff{T})
+  co = SolutionCoeff(rast, T)
   map!(co,ci)
   return co
 end
 
-SolutionCoeff(rast::Raster) = SolutionCoeff(rast, Vector{Float64}(slen(rast)))
+SolutionCoeff(rast::Raster) = SolutionCoeff(rast, Float64)
+SolutionCoeff{T}(rast::Raster, ::Type{T}) = SolutionCoeff(rast, Vector{T}(slen(rast)))
 
 # Raster coefficients represent a function expressed in the rasterised basis,
 # which is defined over a square or cuboid redion, and may include superfluous
@@ -143,43 +145,46 @@ SolutionCoeff(rast::Raster) = SolutionCoeff(rast, Vector{Float64}(slen(rast)))
 Return a coefficient array for the raster basis defined by the `raster`,
 initialised with the `coeff` vector of length equal to blen(raster).
 """
-type RasterCoeff <: RasterCoeffTypes
+type RasterCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{Float64}
-  function RasterCoeff(rast::Raster, data::Vector{Float64})
+  function (::Type{RasterCoeff}){T}(rast::Raster, data::Vector{T})
     assert(length(data) == blen(rast))
-    return new(rast,data)
+    return new{T}(rast,data)
   end
 end
 
+Base.similar{T,Te}(coeff::RasterCoeff{T}, ::Type{Te}, dims::Dims) = RasterCoeff(coeff.rast, T)
 size(coeff::RasterCoeff) = (length(coeff.data),)
 size(::Type{RasterCoeff}, raster::Raster) = (blen(raster),)
 
 """
-    RasterCoeff(mesh)
+    RasterCoeff(raster)
 
 Return an uninitialised coefficient array for raster basis defined by the `raster`.
 """
-function RasterCoeff(rast::Raster, ci::NodalCoeff)
-  co = RasterCoeff(rast)
+function RasterCoeff{T}(rast::Raster, ci::NodalCoeff{T})
+  co = RasterCoeff(rast, T)
   map!(co,ci)
   return co
 end
 
-RasterCoeff(rast::Raster) = RasterCoeff(rast, Vector{Float64}(blen(rast)))
+RasterCoeff(rast::Raster) = RasterCoeff(rast, Float64)
+RasterCoeff{T}(rast::Raster, ::Type{T}) = RasterCoeff(rast, Vector{T}(blen(rast)))
 
 # Intermediate coefficients represent a function expressed in a higher resolution
 # version of the raster basis, and may include superfluous elements which are
 # outside of the support of the mesh.
-type IntermediateCoeff <: RasterCoeffTypes
+type IntermediateCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
-  data::Vector{Float64}
-  function IntermediateCoeff(rast::Raster, data::Vector{Float64})
+  data::Vector{T}
+  function (::Type{IntermediateCoeff}){T}(rast::Raster, data::Vector{T})
     assert(length(data) == glen(rast))
-    return new(rast,data)
+    return new{T}(rast,data)
   end
 end
 
+Base.similar{T,Te}(coeff::IntermediateCoeff{T}, ::Type{Te}, dims::Dims) = RasterCoeff(coeff.rast, T)
 size(coeff::IntermediateCoeff) = (length(coeff.data),)
 size(::Type{IntermediateCoeff}, raster::Raster) = (glen(raster),)
 
@@ -189,18 +194,19 @@ size(::Type{IntermediateCoeff}, raster::Raster) = (glen(raster),)
 Return a coefficient array for the intermediate basis defined by the `raster`,
 initialised with the `coeff` vector of length equal to glen(raster).
 """
-function IntermediateCoeff(rast::Raster, ci::NodalCoeff)
-  co = IntermediateCoeff(rast)
+function IntermediateCoeff{T}(rast::Raster, ci::NodalCoeff{T})
+  co = IntermediateCoeff(rast, T)
   map!(co,ci)
   return co
 end
 
 """
-    IntermediateCoeff(mesh)
+    IntermediateCoeff(raster)
 
 Return an uninitialised coefficient array for intermediate basis defined by the `raster`.
 """
-IntermediateCoeff(rast::Raster) = IntermediateCoeff(rast, Vector{Float64}(glen(rast)))
+IntermediateCoeff(rast::Raster) = IntermediateCoeff(rast, Float64)
+IntermediateCoeff{T}(rast::Raster, ::Type{T}) = IntermediateCoeff(rast, Vector{T}(glen(rast)))
 
 #
 # Coefficient mapping (and construction)
@@ -208,7 +214,7 @@ IntermediateCoeff(rast::Raster) = IntermediateCoeff(rast, Vector{Float64}(glen(r
 
 # Convert everything to nodal coefficients
 function convert{T<:RasterCoeffTypes}(::Type{NodalCoeff}, ci::T)
-  co = NodalCoeff(ci.rast.mesh)
+  co = NodalCoeff(ci.rast.mesh, eltype(ci.data))
   map!(co, ci)
   return co
 end
@@ -225,24 +231,18 @@ map!(co::NodalCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _
 
 # Convert everything to raster coefficients
 function convert{T<:RasterCoeffTypes}(::Type{RasterCoeff}, ci::T)
-  co = RasterCoeff(ci.rast)
+  co = RasterCoeff(ci.rast, eltype(ci.data))
   map!(co,ci)
   return co
 end
 
-"""
-  map!(out::RasterCoeffTypes, in::RasterCoeffTypes)
-
-Map a function defined on a raster basis, `in`, to an alternative raster basis,
-overwriting `out` in place.
-"""
 map!(co::RasterCoeff, ci::NodalCoeff) = _map!(co.data, ci.data, co.rast, _nb)
 map!(co::RasterCoeff, ci::SolutionCoeff)  = _map!(co.data, ci.data, ci.rast, _sb)
 map!(co::RasterCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast, _gb)
 
 # Convert everything to solution coefficients
 function convert{T<:RasterCoeffTypes}(::Type{SolutionCoeff}, ci::T)
-  co = SolutionCoeff(ci.rast)
+  co = SolutionCoeff(ci.rast, eltype(ci.data))
   map!(co,ci)
   return co
 end
@@ -253,7 +253,7 @@ map!(co::SolutionCoeff, ci::IntermediateCoeff) = _map!(co.data, ci.data, ci.rast
 
 # Convert everything to intermediate coefficients
 function convert{T<:RasterCoeffTypes}(::Type{IntermediateCoeff}, ci::T)
-  co = IntermediateCoeff(ci.rast)
+  co = IntermediateCoeff(ci.rast, eltype(ci.data))
   map!(co,ci)
   return co
 end
@@ -327,11 +327,105 @@ function _map!(ovec::Vector{Float64},
 
 end
 
+# Low level mapping function
+function _map!(ovec::Vector{Complex{Float64}},
+               ivec::Vector{Complex{Float64}},
+               rast::Raster,
+               mode::MapTransforms)
+
+  modeint = Int(mode)
+  rastptr = rast.ptr
+
+  ilen = length(ivec)
+
+  rivec = real(ivec)
+  iivec = imag(ivec)
+  rivecptr = pointer(rivec)
+  iivecptr = pointer(iivec)
+
+  olen = length(ovec)
+
+  rovec = real(ovec)
+  iovec = imag(ovec)
+  rovecptr = pointer(rovec)
+  iovecptr = pointer(iovec)
+
+  icxx"""
+
+      CVector iprm($(ilen));
+      CVector oprm($(olen));
+
+      std::complex<double> *val;
+
+      val = iprm.data_buffer();
+
+      for (int i = 0; i < $(ilen); i++)
+          val[i] = std::complex<double> ($(rivecptr)[i], $(iivecptr)[i]);
+
+      switch($(modeint))
+      {
+          case 0:
+              $(rastptr)->Map_MeshToBasis(iprm, oprm);
+              break;
+          case 1:
+              $(rastptr)->Map_MeshToGrid(iprm, oprm);
+              break;
+          case 2:
+              $(rastptr)->Map_MeshToSol(iprm, oprm);
+              break;
+
+          case 3:
+              $(rastptr)->Map_BasisToMesh(iprm, oprm);
+              break;
+          case 4:
+              $(rastptr)->Map_BasisToGrid(iprm, oprm);
+              break;
+          case 5:
+              $(rastptr)->Map_BasisToSol(iprm, oprm);
+              break;
+
+          case 6:
+              $(rastptr)->Map_SolToMesh(iprm, oprm);
+              break;
+          case 7:
+              $(rastptr)->Map_SolToBasis(iprm, oprm);
+              break;
+          case 8:
+              $(rastptr)->Map_SolToGrid(iprm, oprm);
+              break;
+
+          case 9:
+              $(rastptr)->Map_GridToMesh(iprm, oprm);
+              break;
+          case 10:
+              $(rastptr)->Map_GridToSol(iprm, oprm);
+              break;
+          case 11:
+              $(rastptr)->Map_GridToBasis(iprm, oprm);
+              break;
+      }
+
+      val = oprm.data_buffer();
+
+      for (int i = 0; i < $(ilen); i++)
+      {
+        $(rovecptr)[i] = real(val[i]);
+        $(iovecptr)[i] = imag(val[i]);
+      }
+  """
+
+  ovec .= rovec .+ im.*iovec
+
+  return ovec
+
+end
+
+
 """
     gradient(coeff)
 
-Compute the spatial gradient of `coeff` which must be expressed in either an
-`RasterCoeff` or `IntermediateCoeff` basis.
+Compute the spatial gradient of `coeff` which must be expressed in an
+`IntermediateCoeff` basis.
 """
 function gradient(coeff::IntermediateCoeff)
 
@@ -368,5 +462,65 @@ function gradient(coeff::IntermediateCoeff)
   """
 
   return ∇coeff
+
+end
+
+function gradient(coeff::IntermediateCoeff{Complex{Float64}})
+
+  # TODO: Native implementaiton from ADMM.jl
+  ndim = dimensions(coeff.rast.mesh)
+  len = glen(coeff.rast)
+  rptr = coeff.rast.ptr
+
+  rcoeff = real(coeff.data)
+  icoeff = imag(coeff.data)
+  rcoptr = pointer(rcoeff)
+  icoptr = pointer(icoeff)
+
+  ∇coeff = Array(Float64, len*2, ndim)
+  gcoptr = pointer(∇coeff)
+
+  icxx"""
+    const IVector &gdim = $(rptr)->GDim();
+    const RVector &gsize = $(rptr)->GSize();
+
+    CVector img($(len));
+
+    std::complex<double> *val;
+
+    val = img.data_buffer();
+
+    for (int i = 0; i < $(len); i++)
+        val[i] = std::complex<double> ($(rcoptr)[i], $(icoptr)[i]);
+
+    CVector *imgrad = new CVector[$(ndim)];
+    ImageGradient(gdim, gsize, img, imgrad, $(rptr)->Elref());
+
+    for(int i = 0; i < $(len); i++)
+    {
+      $(gcoptr)[2*i]   = real(imgrad[0][i]);
+      $(gcoptr)[2*i+1] = imag(imgrad[0][i]);
+    }
+
+    for(int i=0; i < $(len); i++)
+    {
+      $(gcoptr)[2*i+(2*$(len))]   = real(imgrad[1][i]);
+      $(gcoptr)[2*i+(2*$(len))+1] = imag(imgrad[1][i]);
+    }
+
+    if($ndim > 2)
+    {
+      for(int i=0; i < $(len); i++)
+      {
+        $(gcoptr)[2*i+(4*$(len))]   = real(imgrad[2][i]);
+        $(gcoptr)[2*i+(4*$(len))+1] = real(imgrad[2][i]);
+      }
+    }
+
+    delete []imgrad;
+  """
+
+  ∇coeffout = ∇coeff[1:2:end, :] + im*∇coeff[2:2:end, :]
+  return ∇coeffout
 
 end
