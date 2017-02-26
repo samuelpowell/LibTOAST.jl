@@ -407,7 +407,7 @@ function _map!(ovec::Vector{Complex{Float64}},
 
       val = oprm.data_buffer();
 
-      for (int i = 0; i < $(ilen); i++)
+      for (int i = 0; i < $(olen); i++)
       {
         $(rovecptr)[i] = real(val[i]);
         $(iovecptr)[i] = imag(val[i]);
