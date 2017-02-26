@@ -11,6 +11,8 @@
     @test blen(pixelmap) == nx*ny
     @test glen(pixelmap) == nx*ny*2*2
     @test slen(pixelmap) == 352
+    @test all(bdim(pixelmap) .== [nx,ny])
+    @test bsize(pixelmap) == 6.25
 
     gscale = 4
     pixelmap = PixelMap(mesh2D, (nx,ny), gscale=gscale)

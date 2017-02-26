@@ -8,7 +8,7 @@ import Base: string, print, show
 export Raster, PixelMap
 
 # Export methods
-export nlen, glen, blen, slen, map, gradient
+export nlen, glen, blen, slen, map, bsize, bdim
 
 """
     Raster
@@ -118,7 +118,7 @@ end
 _raster_delete(Raster::Raster) = finalize(Raster.ptr)
 
 """
-    nlen(rasterast)
+    nlen(raster)
 
 Return the number of nodal coefficients in the mesh basis associated with the
 raster.
@@ -126,7 +126,7 @@ raster.
 nlen(Raster::Raster) = nodecount(Raster.mesh)
 
 """
-    slen(rasterast)
+    slen(raster)
 
 Return the number of coefficients in the raster solution basis, which does
 not include raster points outside of the support of the underlying mesh.
@@ -134,16 +134,46 @@ not include raster points outside of the support of the underlying mesh.
 slen(Raster::Raster) = @cxx Raster.ptr->SLen()
 
 """
-    blen(rasterast)
+    blen(raster)
 
 Return the number of coefficients in the raster.
 """
 blen(Raster::Raster) = @cxx Raster.ptr->BLen()
 
 """
-    glen(rasterast)
+    glen(raster)
 
 Return the number of coefficients in the raster intermediate basis, which is
 used to map between bases.
 """
 glen(Raster::Raster) = @cxx Raster.ptr->GLen()
+
+"""
+    bdim(raster)
+
+Return the number of elements in each dimension of the raster basis.
+"""
+function bdim(raster::Raster)
+
+  ndim = dimensions(raster.mesh)
+  dims = Vector{Int}(ndim)
+  dimp = pointer(dims)
+
+  icxx"""
+    for(int i=0; i<$(ndim); i++)
+      $(dimp)[i] = $(raster.ptr)->BDim()[i];
+  """
+
+  return dims
+
+end
+
+"""
+    bsize(raster)
+
+The `size` (area/volume) of each element of the raster basis.
+"""
+function bsize(raster::Raster)
+  bb = boundingbox(raster.mesh)
+  prod((bb[2,:] .- bb[1,:])./ bdim(raster) )
+end
