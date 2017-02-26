@@ -12,6 +12,8 @@ export gradient
 
 @enum MapTransforms _nb _ng _ns _bn _bg _bs _sn _sb _sg _gn _gs _gb
 
+typealias Reltypes Union{Float64, Complex{Float64}}
+
 #
 # Coefficent types
 #
@@ -22,11 +24,12 @@ export gradient
 
 Return a nodal coefficient array for a basis defined on the `mesh` initialised
 with the `coeff` vector of length equal to the number of nodes in the basis.
+The element type of `coeff` may be `Float64`, or `Complex{Float64}`.
 """
 type NodalCoeff{T} <: AbstractArray{T, 1}
   mesh::Mesh
   data::Vector{T}
-  function (::Type{NodalCoeff}){T}(mesh::Mesh, data::Vector{T})
+  function (::Type{NodalCoeff}){T<:Reltypes}(mesh::Mesh, data::Vector{T})
     assert(length(data) == nodecount(mesh))
     return new{T}(mesh,data)
   end
@@ -107,12 +110,13 @@ end
     SolutionCoeff(raster, coeff)
 
 Return a coefficient array for the solution basis defined by the `raster`,
-initialised with the `coeff` vector of length equal to slen(raster).
+initialised with the `coeff` vector of length equal to slen(raster). The element
+type of `coeff` may be `Float64`, or `Complex{Float64}`.
 """
 type SolutionCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{T}
-  function (::Type{SolutionCoeff}){T}(rast::Raster, data::Vector{T})
+  function (::Type{SolutionCoeff}){T<:Reltypes}(rast::Raster, data::Vector{T})
     assert(length(data) == slen(rast))
     return new{T}(rast,data)
   end
@@ -143,12 +147,13 @@ SolutionCoeff{T}(rast::Raster, ::Type{T}) = SolutionCoeff(rast, Vector{T}(slen(r
     RasterCoeff(raster, coeff)
 
 Return a coefficient array for the raster basis defined by the `raster`,
-initialised with the `coeff` vector of length equal to blen(raster).
+initialised with the `coeff` vector of length equal to blen(raster). The element
+type of `coeff` may be `Float64`, or `Complex{Float64}`.
 """
 type RasterCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{Float64}
-  function (::Type{RasterCoeff}){T}(rast::Raster, data::Vector{T})
+  function (::Type{RasterCoeff}){T<:Reltypes}(rast::Raster, data::Vector{T})
     assert(length(data) == blen(rast))
     return new{T}(rast,data)
   end
@@ -178,7 +183,7 @@ RasterCoeff{T}(rast::Raster, ::Type{T}) = RasterCoeff(rast, Vector{T}(blen(rast)
 type IntermediateCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{T}
-  function (::Type{IntermediateCoeff}){T}(rast::Raster, data::Vector{T})
+  function (::Type{IntermediateCoeff}){T<:Reltypes}(rast::Raster, data::Vector{T})
     assert(length(data) == glen(rast))
     return new{T}(rast,data)
   end
@@ -192,7 +197,8 @@ size(::Type{IntermediateCoeff}, raster::Raster) = (glen(raster),)
     IntermediateCoeff(raster, coeff)
 
 Return a coefficient array for the intermediate basis defined by the `raster`,
-initialised with the `coeff` vector of length equal to glen(raster).
+initialised with the `coeff` vector of length equal to glen(raster). The element
+type of `coeff` may be `Float64`, or `Complex{Float64}`.
 """
 function IntermediateCoeff{T}(rast::Raster, ci::NodalCoeff{T})
   co = IntermediateCoeff(rast, T)
