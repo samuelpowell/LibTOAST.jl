@@ -61,7 +61,7 @@ script:
     - if [ ! -f $HOME/early_abort ]; then PREBUILT_CI_BINARIES=1 julia -e 'Pkg.build("Cxx")' || false; fi
     - if [ ! -f $HOME/early_abort ]; then julia -e 'Pkg.test("Cxx")' || false; fi
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-    - julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
+    - julia -e 'Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
 
 after_success:
   # push coverage results to Coveralls
