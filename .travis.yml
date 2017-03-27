@@ -1,19 +1,73 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
-language: julia
-os:
-  - linux
-  - osx
-julia:
-  - release
-  - nightly
-notifications:
-  email: false
-# uncomment the following lines to override the default test script
-#script:
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
+# Configuration from Cxx.jl repository
+sudo: false
+
+addons:
+    apt:
+        sources:
+           - ubuntu-toolchain-r-test
+           - george-edison55-precise-backports
+        packages:
+           - cmake
+           - cmake-data
+           - gcc-6
+           - g++-6
+           - binutils
+           - gfortran
+           - libblas-dev
+           - liblapack-dev
+           - libgmp-dev
+           - libmpfr-dev
+
+matrix:
+    include:
+       - language: julia
+         julia: 0.5
+         os: linux
+       - language: julia
+         julia: nightly
+         os: linux
+       - language: julia
+         julia: 0.5
+         os: osx
+
+cache:
+    directories:
+        - $(julia -e 'println(Pkg.dir())')/Cxx/deps/src
+        - $(julia -e 'println(Pkg.dir())')/Cxx/deps/build
+        - ~/usr
+
+before_cache:
+    - rm ~/.julia/0.5/Cxx/deps/build/bootstrap.o
+    - rm -rf ~/.julia/0.5/deps/usr
+
+install:
+    - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
+    - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export CXX="clang++" CC="clang"; fi
+    - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export PATH="$HOME/usr/bin:$PATH"; fi
+    - export THE_PKG_DIR=`julia -e 'println(Pkg.dir())'`
+
+script:
+    - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ ! -f $HOME/usr/bin/ld ]; then
+         wget https://ftp.gnu.org/gnu/binutils/binutils-2.27.tar.gz;
+         tar xzf binutils-2.27.tar.gz;
+         (cd binutils-2.27 && ./configure --prefix=$HOME/usr && make && make install);
+      fi;
+    - julia -e 'versioninfo()'
+    - mv $THE_PKG_DIR/Cxx $THE_PKG_DIR/Cxx-cache
+    - julia -e 'Pkg.clone(pwd())'
+    - mv $THE_PKG_DIR/Cxx-cache/deps/src $THE_PKG_DIR/Cxx/deps/src || true
+    - mv $THE_PKG_DIR/Cxx-cache/deps/build $THE_PKG_DIR/Cxx/deps/build || true
+    - if [ ! -f $HOME/early_abort ]; then PREBUILT_CI_BINARIES=1 julia -e 'Pkg.build("Cxx")' || false; fi
+    - if [ ! -f $HOME/early_abort ]; then julia -e 'Pkg.test("Cxx")' || false; fi
+    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+    - julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
+
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("libTOAST")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
   - julia -e 'cd(Pkg.dir("libTOAST")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+
+notifications:
+  email: false
