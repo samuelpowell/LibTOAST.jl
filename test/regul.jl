@@ -1,4 +1,4 @@
-# TOAST.jl: interface to the TOAST++ library
+# libTOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
 @testset "Regularisation" begin
@@ -23,8 +23,8 @@
     @test val(reg, rc) == 0
     @test_approx_eq val(reg, r0) norm(rc.data)^2
 
-    @test norm(TOAST.grad(reg,rc)) == 0
-    @test_approx_eq norm(TOAST.grad(reg, r0)) 2*norm(rc)
+    @test norm(libTOAST.grad(reg,rc)) == 0
+    @test_approx_eq norm(libTOAST.grad(reg, r0)) 2*norm(rc)
 
   end
 

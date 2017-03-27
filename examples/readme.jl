@@ -1,4 +1,4 @@
-# TOAST.jl: interface to the TOAST++ library
+# libTOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
 # This example contains a listing of the source code given in the first example

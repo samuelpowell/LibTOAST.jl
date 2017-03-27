@@ -1,4 +1,4 @@
-# TOAST.jl: interface to the TOAST++ library
+# libTOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2017 Samuel Powell
 
 # Export integral enumerations (see mesh.h)
