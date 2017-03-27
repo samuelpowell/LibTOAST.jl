@@ -1,5 +1,13 @@
 # libTOAST.jl
 
+
+[![Build Status](https://travis-ci.org/samuelpowell/libTOAST.jl.svg?branch=master)](https://travis-ci.org/samuelpowell/libTOAST.jl)
+
+[![Coverage Status](https://coveralls.io/repos/samuelpowell/libTOAST.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/samuelpowell/libTOAST.jl?branch=master)
+
+[![codecov.io](http://codecov.io/github/samuelpowell/libTOAST.jl/coverage.svg?branch=master)](http://codecov.io/github/samuelpowell/libTOAST.jl?branch=master)
+
+
 libTOAST.jl is a low-level interface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modelling and image reconstruction in Diffuse Optical Tomography (DOT), the libTOAST.jl interface provides an (opinionated) interface to a subset of its underlying finite-element, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a separate Julia package.
 
 libTOAST.jl allows one to easily:
@@ -41,14 +49,14 @@ with a Robin condition on the boundary δΩ
 ϕ(r) + γ n⋅∇ϕ(r) = 0 (r ∈ δΩ),
 ```
 
-where `n` is the unit outward normal to the boundary. 
+where `n` is the unit outward normal to the boundary.
 
 Solving this PDE numerically using the Finite Element Method can be achieved as follows:
 
 1. find the weak form of the equation through multiplication by a test function and integration by parts;
 2. subdivide the domain into a mesh of non-overlapping elements joined at N vertex nodes, and define a set of basis functions over this domain;
 3. choose the test functions in the weak formulation to be the same as the aformentioned basis in the mesh;
-4. approximate the solution and the parameters parameters in the same basis, e.g, 
+4. approximate the solution and the parameters parameters in the same basis, e.g,
 
 ```
 ϕ(r) ≈ ϕʰ(r) = ∑ᵢ ϕᵢ uᵢ(r).
@@ -108,7 +116,7 @@ libTOAST.jl reports that it has loaded the mesh. In TOAST++ the mesh and the fin
 
 ### 3. Define the parameters
 
-There are three parameters in the problem, κ(r), μ(r), and γ(r). We directly provide the discrete form of the parameters as a set of nodal coefficients in the same basis as the shape functions used for the finite-element solution. 
+There are three parameters in the problem, κ(r), μ(r), and γ(r). We directly provide the discrete form of the parameters as a set of nodal coefficients in the same basis as the shape functions used for the finite-element solution.
 
 Functions in nodal basis are represented in `NodalCoeff` types, which hold a reference to the `mesh`.
 
@@ -180,7 +188,7 @@ In TOAST++ the mesh and the underlying finite-element subspace are tightly coupl
 Meshes can be specified by supplying two parameters:
 
 1. a matrix containing the location of each vertex;
-2. an matrix describing the element connectivity (the vertices belonging to each element). 
+2. an matrix describing the element connectivity (the vertices belonging to each element).
 
 For example, suppose `vtx` is a number-of-vertices x 3 matrix of vertices, and `ele` is a number-of-elements x 4 matrix defining the element connectivity, then we may construct a mesh of tetrahedral elements as follows.
 
@@ -188,7 +196,7 @@ For example, suppose `vtx` is a number-of-vertices x 3 matrix of vertices, and `
 mesh = Mesh(vtx, ele)
 ```
 
-The following tabulates some important methods which operate on meshes, see inline help for details of the arguments and return types. 
+The following tabulates some important methods which operate on meshes, see inline help for details of the arguments and return types.
 
 | Function    | Purpose                                                                             |
 |-------------|-------------------------------------------------------------------------------------|
@@ -243,7 +251,7 @@ and the following linear forms:
 
 TOAST++ is designed to allow solution of the inverse problem in DOT, which consists of estimating the parameters of the PDE from knowledge of solutions. It is convenient to perform this image reconstruction process in a pixel- or voxel-wise representation of the domain, rather than directly in the mesh basis.
 
-To this end, TOAST++ [provides a technique](http://electronicimaging.spiedigitallibrary.org/article.aspx?articleid=1098083) by which to define a raster of pixels/voxels (and indeed, other functions such as radial basis functions) over the support of the underlying domain. 
+To this end, TOAST++ [provides a technique](http://electronicimaging.spiedigitallibrary.org/article.aspx?articleid=1098083) by which to define a raster of pixels/voxels (and indeed, other functions such as radial basis functions) over the support of the underlying domain.
 
 A raster provides three bases, and libTOAST.jl expresses these in three subtypes of an AbstractArray.
 
