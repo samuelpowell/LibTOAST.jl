@@ -1,12 +1,12 @@
-using TOAST
+using libTOAST
 using Base.Test
 
 # Get some test data from the Toast++ source distribution
-meshdir_2D = joinpath(TOAST._jl_toast_dir, "test", "2D", "meshes")
-meshdir_3D = joinpath(TOAST._jl_toast_dir, "test", "3D", "meshes")
+meshdir_2D = joinpath(libTOAST._jl_toast_dir, "test", "2D", "meshes")
+meshdir_3D = joinpath(libTOAST._jl_toast_dir, "test", "3D", "meshes")
 
 
-@testset "TOAST.jl Core" begin
+@testset "libTOAST.jl Core" begin
 
   include("mesh.jl")
 
