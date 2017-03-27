@@ -1,8 +1,8 @@
-# TOAST.jl
+# libTOAST.jl
 
-TOAST.jl is a low-level interface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modelling and image reconstruction in Diffuse Optical Tomography (DOT), the TOAST.jl interface provides an (opinionated) interface to a subset of its underlying finite-element, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a separate Julia package.
+libTOAST.jl is a low-level interface to the [TOAST++](https://github.com/toastpp/toastpp) library. Whilst TOAST++ is designed as an end-to-end solution for forward modelling and image reconstruction in Diffuse Optical Tomography (DOT), the libTOAST.jl interface provides an (opinionated) interface to a subset of its underlying finite-element, raster mapping, and regularisation functionality. DOT specific functionality is implemented in a separate Julia package.
 
-TOAST.jl allows one to easily:
+libTOAST.jl allows one to easily:
 
 1. solve certain types of second order partial differential equations in two- and three-dimensions using the (Galerkin) Finite Element Method;
 2. map functions between unstructured meshes and alternative bases (e.g. pixels, voxels) defined in a uniform rasterisation;
@@ -10,18 +10,18 @@ TOAST.jl allows one to easily:
 
 ## Compatibilty
 
-TOAST.jl directly calls the underlying C++ library using [Cxx.jl](https://github.com/Keno/Cxx.jl) which is currently supported only on Linux and macOS. Windows support is *expected* with the release of Julia 0.6.
+libTOAST.jl directly calls the underlying C++ library using [Cxx.jl](https://github.com/Keno/Cxx.jl) which is currently supported only on Linux and macOS. Windows support is *expected* with the release of Julia 0.6.
 
 ## Installation
 
-Ensure that you have a working Cxx.jl installation, then install and build TOAST.jl package as follows.
+Ensure that you have a working Cxx.jl installation, then install and build libTOAST.jl package as follows.
 
 ```
-julia> Pkg.clone("git@github.com:samuelpowell/TOAST.jl.git")
+julia> Pkg.clone("git@github.com:samuelpowell/libTOAST.jl.git")
 julia> Pkg.build("TOAST")
 ```
 
-The TOAST.jl build process will download the requisite binaries and the header files required to call the library, these are stored in the package directory. You can test that TOAST.jl is properly configured by running the unit tests.
+The libTOAST.jl build process will download the requisite binaries and the header files required to call the library, these are stored in the package directory. You can test that libTOAST.jl is properly configured by running the unit tests.
 
 ```
 Pkg.test("TOAST")
@@ -29,7 +29,7 @@ Pkg.test("TOAST")
 
 ## A first example
 
-By means of an introduction, we will use TOAST.jl to solve a lossy diffusion equation over a domain Ω
+By means of an introduction, we will use libTOAST.jl to solve a lossy diffusion equation over a domain Ω
 
 ```
 [-∇⋅κ(r)∇ + μ(r)] ϕ(r) = δ(r) (r ∈ Ω),
@@ -75,7 +75,7 @@ Qᵢ = ∑ᵢ qᵢ ∫_Ω uᵢ(r) dr,
 
 and `ϕ` is the vector of nodal coefficients that specified the solution in the chosen basis.
 
-Items (1) - (4) are typically performed by hand. The core utility of the finite-element functionality of TOAST.jl is to manage the mesh, compute the integrals of various products of basis functions, and assemble the matrices required to find the solution vector. We will demonstrate this process in the following five steps. The full source code for this example is located in `/examples/readme.jl`.
+Items (1) - (4) are typically performed by hand. The core utility of the finite-element functionality of libTOAST.jl is to manage the mesh, compute the integrals of various products of basis functions, and assemble the matrices required to find the solution vector. We will demonstrate this process in the following five steps. The full source code for this example is located in `/examples/readme.jl`.
 
 ### 1. Load the TOAST module
 
@@ -104,7 +104,7 @@ INFO: Number of vertices: 3511, number of nonzeros: 24211
 
 This mesh defines a circular two-dimensional domain of radius 25mm.
 
-TOAST.jl reports that it has loaded the mesh. In TOAST++ the mesh and the finite-element subspace are tightly coupled: a description of the mesh includes a specification of the finite-element shape functions; as such TOAST.jl is able to precompute the sparsity pattern which will be used for system matrix assembly.
+libTOAST.jl reports that it has loaded the mesh. In TOAST++ the mesh and the finite-element subspace are tightly coupled: a description of the mesh includes a specification of the finite-element shape functions; as such libTOAST.jl is able to precompute the sparsity pattern which will be used for system matrix assembly.
 
 ### 3. Define the parameters
 
@@ -126,7 +126,7 @@ To build the system matrix we first instantiate a `SystemMatrix`
 julia> S = SystemMatrix(mesh)
 ```
 
-which is a thin wrapper around a compressed sparse row (CSR) matrix used by TOAST. Since Julia's native sparse arrays are compressed sparse column (CSC) TOAST.jl, uses this wrapper until the final matrix is ready for use, this allows us to add components of the system matrix in-place without additional allocations.
+which is a thin wrapper around a compressed sparse row (CSR) matrix used by TOAST. Since Julia's native sparse arrays are compressed sparse column (CSC) libTOAST.jl, uses this wrapper until the final matrix is ready for use, this allows us to add components of the system matrix in-place without additional allocations.
 
 We now assemble and add each of the components to the system matrix.
 
@@ -146,7 +146,7 @@ sysmat = sparse(S)
 
 ### 4. Build a source term
 
-Equipped with a system matrix describing the discrete form of the PDE we can solve the system against an arbitrary source term (right hand side). In general, one may build arbitrary source terms using the general-purpose assembly routines. In this case, however, we choose to solve against a point source located at the centre of the domain. For this purposes TOAST.jl exposes a specific type and special-purpose method `assemble` method,
+Equipped with a system matrix describing the discrete form of the PDE we can solve the system against an arbitrary source term (right hand side). In general, one may build arbitrary source terms using the general-purpose assembly routines. In this case, however, we choose to solve against a point source located at the centre of the domain. For this purposes libTOAST.jl exposes a specific type and special-purpose method `assemble` method,
 
 ```
 julia> source = PointSource(mesh, [0.,0.], Isotropic)
@@ -175,7 +175,7 @@ julia> plot_trisurf(vtx[:,1], vtx[:,2], ϕ)
 
 ### Meshes and the FE subspace
 
-In TOAST++ the mesh and the underlying finite-element subspace are tightly coupled: the type of the finite-element is chosen during initialisation of the mesh. TOAST.jl only supports homogenous meshes of piecewise-linear triangular (2D) or tetrahedral (3D) meshes. Element-wise assembly is a planned feature.
+In TOAST++ the mesh and the underlying finite-element subspace are tightly coupled: the type of the finite-element is chosen during initialisation of the mesh. libTOAST.jl only supports homogenous meshes of piecewise-linear triangular (2D) or tetrahedral (3D) meshes. Element-wise assembly is a planned feature.
 
 Meshes can be specified by supplying two parameters:
 
@@ -207,7 +207,7 @@ The following tabulates some important methods which operate on meshes, see inli
 
 TOAST++, like most general purpose finite element libraries, allows the user to assemble system matrices and right hand side vectors by computing local integrals over elements, and assembling these contributions into the global system matrix.
 
-At present, the TOAST.jl interface only exposes the ability to compute the fully assembled matrices in a single step. One advantage of this approach is that the back-end library can perform multi-threaded assembly (Julia's multi-threading capabilities are still experimental).
+At present, the libTOAST.jl interface only exposes the ability to compute the fully assembled matrices in a single step. One advantage of this approach is that the back-end library can perform multi-threaded assembly (Julia's multi-threading capabilities are still experimental).
 
 The nature of the assembly, and the domain of the integration, is specified by an integration symbol that is defined as one of three enumerations: LinearIntegrals, BilinearIntegrals, and BilinearParamIntegrals. Assembly is performed by one of the following methods:
 
@@ -220,7 +220,7 @@ The purpose of the `SystemMatrix` type is described in part (4) of the first exa
 
 #### Assembly types
 
-TOAST.jl supports the assembly of the following bilinear forms:
+libTOAST.jl supports the assembly of the following bilinear forms:
 
 | Symbol | Integral                                | Domain |
 |--------|-----------------------------------------|--------|
@@ -245,7 +245,7 @@ TOAST++ is designed to allow solution of the inverse problem in DOT, which consi
 
 To this end, TOAST++ [provides a technique](http://electronicimaging.spiedigitallibrary.org/article.aspx?articleid=1098083) by which to define a raster of pixels/voxels (and indeed, other functions such as radial basis functions) over the support of the underlying domain. 
 
-A raster provides three bases, and TOAST.jl expresses these in three subtypes of an AbstractArray.
+A raster provides three bases, and libTOAST.jl expresses these in three subtypes of an AbstractArray.
 
 | Symbol | Basis and purpose                                                      | Coefficient Type  |
 |--------|------------------------------------------------------------------------|-------------------|
@@ -283,7 +283,7 @@ julia> map!(fm, fr)
 
 ### Regularisation
 
-TOAST++ provides the functionality to calculate the value, gradient and Hessian of various regularisation functionals. The TOAST.jl interface provides access to a subset of these functionals. Note that all regularisation methods operate on `SolutionCoeff` types.
+TOAST++ provides the functionality to calculate the value, gradient and Hessian of various regularisation functionals. The libTOAST.jl interface provides access to a subset of these functionals. Note that all regularisation methods operate on `SolutionCoeff` types.
 
 | Symbol | Type                    | Value            |
 |--------|-------------------------|------------------|
