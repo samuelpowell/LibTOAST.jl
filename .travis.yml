@@ -55,13 +55,13 @@ script:
       fi;
     - julia -e 'versioninfo()'
     - mv $THE_PKG_DIR/Cxx $THE_PKG_DIR/Cxx-cache
-    - julia -e 'Pkg.clone(pwd())'
+    - julia -e 'Pkg.clone("Cxx")'
     - mv $THE_PKG_DIR/Cxx-cache/deps/src $THE_PKG_DIR/Cxx/deps/src || true
     - mv $THE_PKG_DIR/Cxx-cache/deps/build $THE_PKG_DIR/Cxx/deps/build || true
     - if [ ! -f $HOME/early_abort ]; then PREBUILT_CI_BINARIES=1 julia -e 'Pkg.build("Cxx")' || false; fi
     - if [ ! -f $HOME/early_abort ]; then julia -e 'Pkg.test("Cxx")' || false; fi
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-    - julia -e 'Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
+    - julia -e ''Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
 
 after_success:
   # push coverage results to Coveralls
