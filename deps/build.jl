@@ -42,20 +42,17 @@ download(dlroot * dlfile, joinpath(prefix, dlfile))
 # Unzip
 info("Uncompressing Toast++ source and binaries")
 if is_linux()
-  run(`unzip -o $(joinpath(prefix, dlfile)) -d $prefix`)
-  run(`unzip -o $(joinpath(prefix, srcfile)) -d $prefix`)
+  # On linux, unzip binaries into toast subdirectory to match OS X
+  run(`unzip -o $(joinpath(prefix, dlfile)) -d $(joinpath(prefix, "toast"))`)
 else
   run(`unzip -o $(joinpath(prefix, dlfile)) -d $prefix`)
-  run(`unzip -o $(joinpath(prefix, srcfile)) -d $prefix`)
 end
+run(`unzip -o $(joinpath(prefix, srcfile)) -d $prefix`)
 
-if is_linux()
-  run(`cp -r $(joinpath(prefix, osroot * "64" )) $(joinpath(prefix, "toastpp-" * toastn))`)
-  run(`rm -rf $(joinpath(prefix, osroot * "64"))`)
-else
-  run(`cp -r $(joinpath(prefix, "toast", osroot * "64" )) $(joinpath(prefix, "toastpp-" * toastn))`)
-  run(`rm -rf $(joinpath(prefix, "toast"))`)
-end
+# Move the binaries into the source tree
+info("Adding binaries to source tree")
+run(`cp -r $(joinpath(prefix, "toast", osroot * "64" )) $(joinpath(prefix, "toastpp-" * toastn))`)
+run(`rm -rf $(joinpath(prefix, osroot * "64"))`)
 
 # Remove temporary download
 info("Deleteing temporary files")
