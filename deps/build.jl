@@ -43,11 +43,11 @@ download(dlroot * dlfile, joinpath(prefix, dlfile))
 info("Uncompressing Toast++ source and binaries")
 if is_linux()
   # On linux, unzip binaries into toast subdirectory to match OS X
-  run(`unzip -o $(joinpath(prefix, dlfile)) -d $(joinpath(prefix, "toast"))`)
+  run(`unzip -q -o $(joinpath(prefix, dlfile)) -d $(joinpath(prefix, "toast"))`)
 else
-  run(`unzip -o $(joinpath(prefix, dlfile)) -d $prefix`)
+  run(`unzip -q -o $(joinpath(prefix, dlfile)) -d $prefix`)
 end
-run(`unzip -o $(joinpath(prefix, srcfile)) -d $prefix`)
+run(`unzip -q -o $(joinpath(prefix, srcfile)) -d $prefix`)
 
 # Move the binaries into the source tree
 info("Adding binaries to source tree")
