@@ -440,12 +440,12 @@ end
 """
     boundingbox(mesh)
 
-Return the bounding box of the mesh in a ``d \times 2`` matrix.
+Return the bounding box of the mesh in a ``2 \times dim`` matrix.
 """
 function boundingbox(mesh::Mesh)
 
   dim = dimensions(mesh)
-  bb = Array{Cdouble}(dim,2)
+  bb = Array{Cdouble}(2,dim)
 
   icxx"""
     double *jptr = $(pointer(bb));
