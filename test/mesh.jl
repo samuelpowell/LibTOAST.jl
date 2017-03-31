@@ -30,7 +30,7 @@
     @test nodecount(m) == 27084
     @test elemcount(m) == 141702
     @test dimensions(m) == 3
-    @test boundingbox(m) == [-25.0 25.0; 25.0 -25.0; -25.0 25.0]
+    @test boundingbox(m) == [-25.0 -25.0 -25.0; 25.0 25.0 25.0]
     @test fullsize(m) == 98056.71142861326
     @test maxnodes(m) == 4
     vtx, ele = surface(m)
