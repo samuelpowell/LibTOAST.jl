@@ -28,7 +28,7 @@ type Mesh
 
     # Remove unused nodes
     if @cxx ptr->Shrink()
-      warning("Removing unused nodes.");
+      warn("Removing unused nodes.");
     end
 
     # Perform initialisation
