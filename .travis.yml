@@ -53,8 +53,9 @@ addons:
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 
 install:
-  # Set recent compilers
+  # Set recent compilers and binutils path
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export PATH="$HOME/usr/bin:$PATH"; fi
 
 script:
   # Install specific binutils
