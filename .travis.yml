@@ -2,14 +2,6 @@
 language: julia
 os:
   - linux
-  addons:
-    apt:
-      sources:
-        - ubuntu-toolchain-r-test
-      packages:
-        - g++-5
-    env:
-      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
   - osx
 julia:
   - 0.5
@@ -27,7 +19,14 @@ git:
  # - julia: nightly
 
 ## uncomment and modify the following lines to manually install system packages
-#addons:
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-5
+  env:
+    - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"#addons:
 #  apt: # apt-get for linux
 #    packages:
 #    - gfortran
