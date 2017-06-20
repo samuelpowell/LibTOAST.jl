@@ -18,7 +18,7 @@ methods capable of transforming functions between nodal, and rasterised bases.
 
 See PixelMap.
 """
-abstract Raster
+@compat abstract type Raster end
 
 @enum RasterBases Pixel CubicPixel GaussBlob BesselBlob HanningBlob RampBlob SplineBlob
 

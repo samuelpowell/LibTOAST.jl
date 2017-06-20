@@ -10,7 +10,7 @@
   vtx,  = data(mesh2D)
 
   # Create some reasonably smooth function
-  nprm = sin(5*vtx[:,1]./15) + cos(4*vtx[:,2]./15)
+  nprm = sin.(5.*vtx[:,1]./15) .+ cos.(4.*vtx[:,2]./15)
 
   nc = NodalCoeff(mesh2D, nprm)
   rc = SolutionCoeff(pixelmap, nc)
@@ -21,10 +21,10 @@
     reg = RegulTK0(rc)
 
     @test val(reg, rc) == 0
-    @test_approx_eq val(reg, r0) norm(rc.data)^2
+    @test val(reg, r0) ≈ norm(rc.data)^2
 
     @test norm(libTOAST.grad(reg,rc)) == 0
-    @test_approx_eq norm(libTOAST.grad(reg, r0)) 2*norm(rc)
+    @test norm(libTOAST.grad(reg, r0)) ≈ 2*norm(rc)
 
   end
 
@@ -33,7 +33,7 @@
     reg = RegulTK1(rc)
 
     @test val(reg, rc) == 0.0
-    @test_approx_eq_eps val(reg, rc+1) 0.0 1e-20
+    @test val(reg, rc+1) ≈ 0.0 atol=1e-20
 
     # Finite difference the grad
     g = grad(reg, rc)
@@ -51,7 +51,7 @@
     reg = RegulTV(rc)
 
     @test val(reg, rc) == 0.0
-    @test_approx_eq_eps val(reg, rc+1) 0.0 1e-20
+    @test val(reg, rc+1) ≈ 0.0 atol=1e-20
 
     # Finite difference the grad
     g = grad(reg, rc)
@@ -69,7 +69,7 @@
     reg = RegulPM(rc)
 
     @test val(reg, rc) == 0.0
-    @test_approx_eq_eps val(reg, rc+1) 0.0 1e-20
+    @test val(reg, rc+1) ≈ 0.0 atol=1e-20
 
     # Finite difference the grad
     g = grad(reg, rc)

@@ -14,7 +14,7 @@
   @test norm(sparse(S1),1)-norm(sparse(assemble(mesh3D, BNDFF)),1) < 1e-14
 
   # Check FF integral
-  @test_approx_eq sum(sparse(assemble(mesh3D, FF))) fullsize(mesh3D)
+  @test sum(sparse(assemble(mesh3D, FF))) ≈ fullsize(mesh3D)
 
   # Check DD integral
   @test sum(sparse(assemble(mesh3D, DD))) < 1e-12

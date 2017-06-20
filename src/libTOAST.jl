@@ -3,6 +3,7 @@
 
 module libTOAST
 
+using Compat
 using Cxx
 
 # Set verbosity, provide info function

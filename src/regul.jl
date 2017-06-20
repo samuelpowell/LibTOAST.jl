@@ -18,7 +18,7 @@ defined in a SolutionCoeff raster basis.
 
 See RegulTK0, RegulTK1, RegulPM, RegulTV
 """
-abstract Regul
+@compat abstract type Regul end
 
 """
   RegulTK0(x₀)
