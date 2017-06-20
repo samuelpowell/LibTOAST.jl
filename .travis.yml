@@ -34,8 +34,8 @@ git:
 #before_script: # homebrew for mac
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 before_install:
-    - eval "${MATRIX_EVAL}"
-    
+  - eval "${MATRIX_EVAL}"
+
 ## uncomment the following lines to override the default test script
 script:
  - PREBUILT_CI_BINARIES=1 julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
