@@ -1,5 +1,7 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
+dist: trusty
+sudo: false
 os:
   - linux
   - osx
@@ -17,15 +19,15 @@ git:
 matrix:
  allow_failures:
  - julia: nightly
-
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-5
-  env:
-    - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+#
+# addons:
+#   apt:
+#     sources:
+#       - ubuntu-toolchain-r-test
+#     packages:
+#       - g++-5
+#   env:
+#     - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
 #addons:
 #  apt: # apt-get for linux
