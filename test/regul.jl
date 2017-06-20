@@ -33,7 +33,7 @@
     reg = RegulTK1(rc)
 
     @test val(reg, rc) == 0.0
-    @test val(reg, rc+1) ≈ 0.0 atol=1e-20
+    @test ≈(val(reg, rc+1), 0.0, atol=1e-20)
 
     # Finite difference the grad
     g = grad(reg, rc)
@@ -51,7 +51,7 @@
     reg = RegulTV(rc)
 
     @test val(reg, rc) == 0.0
-    @test val(reg, rc+1) ≈ 0.0 atol=1e-20
+    @test ≈(val(reg, rc+1), 0.0, atol=1e-20)
 
     # Finite difference the grad
     g = grad(reg, rc)
@@ -69,7 +69,7 @@
     reg = RegulPM(rc)
 
     @test val(reg, rc) == 0.0
-    @test val(reg, rc+1) ≈ 0.0 atol=1e-20
+    @test ≈(val(reg, rc+1), 0.0, atol=1e-20)
 
     # Finite difference the grad
     g = grad(reg, rc)
