@@ -1,6 +1,5 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-dist: trusty
 sudo: false
 os:
   - linux
@@ -19,6 +18,24 @@ git:
 matrix:
  allow_failures:
  - julia: nightly
+
+
+addons:
+  apt:
+    sources:
+       - ubuntu-toolchain-r-test
+       - george-edison55-precise-backports
+    packages:
+       - cmake
+       - cmake-data
+       - gcc-6
+       - g++-6
+       - binutils
+       - gfortran
+       - libblas-dev
+       - liblapack-dev
+       - libgmp-dev
+       - libmpfr-dev
 #
 # addons:
 #   apt:
@@ -35,8 +52,9 @@ matrix:
 #    - gfortran
 #before_script: # homebrew for mac
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
-before_install:
-  - eval "${MATRIX_EVAL}"
+
+install:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
 
 ## uncomment the following lines to override the default test script
 script:
