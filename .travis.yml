@@ -25,45 +25,29 @@ addons:
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
     packages:
-      - cmake
-      - cmake-data
+      # - cmake
+      # - cmake-data
       - gcc-6
       - g++-6
-      - binutils
-      - gfortran
-      - libblas-dev
-      - liblapack-dev
-      - libgmp-dev
-      - libmpfr-dev
-      #
-# addons:
-#   apt:
-#     sources:
-#       - ubuntu-toolchain-r-test
-#     packages:
-#       - g++-5
-#   env:
-#     - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
-
-#addons:
-#  apt: # apt-get for linux
-#    packages:
-#    - gfortran
-#before_script: # homebrew for mac
-#  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
+      # - binutils
+      # - gfortran
+      # - libblas-dev
+      # - liblapack-dev
+      # - libgmp-dev
+      # - libmpfr-dev
 
 install:
-  # Set recent compilers and binutils path
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export PATH="$HOME/usr/bin:$PATH"; fi
-
-script:
   # Install specific binutils
   - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ ! -f $HOME/usr/bin/ld ]; then
       wget https://ftp.gnu.org/gnu/binutils/binutils-2.27.tar.gz;
       tar xzf binutils-2.27.tar.gz;
       (cd binutils-2.27 && ./configure --prefix=$HOME/usr && make && make install);
     fi;
+  # Set recent compilers and binutils path
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export PATH="$HOME/usr/bin:$PATH"; fi
+
+script:
   # Actually run tests
   - PREBUILT_CI_BINARIES=1 julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
 
