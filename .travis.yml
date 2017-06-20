@@ -1,4 +1,4 @@
-## Documentation: http://docs.travis-ci.com/user/languages/julia/
+# Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
 sudo: false
 os:
@@ -25,16 +25,8 @@ addons:
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
     packages:
-      # - cmake
-      # - cmake-data
       - gcc-6
       - g++-6
-      # - binutils
-      # - gfortran
-      # - libblas-dev
-      # - liblapack-dev
-      # - libgmp-dev
-      # - libmpfr-dev
 
 install:
   # Install specific binutils
@@ -46,6 +38,7 @@ install:
   # Set recent compilers and binutils path
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export PATH="$HOME/usr/bin:$PATH"; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export LD_LIBRARY_PATH=`julia -e 'println(joinpath(Pkg.dir("libTOAST"),"deps","toastpp-2.0.2","linux64","lib"))'`; fi
 
 script:
   # Actually run tests

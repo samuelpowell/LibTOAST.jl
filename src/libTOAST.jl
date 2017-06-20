@@ -14,16 +14,6 @@ include(joinpath(dirname(@__FILE__), "..", "deps", "path.jl"))
 
 function __init__()
 
-  # On linux add our directory to the loader path
-  if is_linux()
-    if haskey(ENV, "LD_LIBRARY_PATH")
-      ENV["LD_LIBRARY_PATH"] = "$(_jl_toast_dir):"*ENV["LD_LIBRARY_PATH"]
-    else
-      ENV["LD_LIBRARY_PATH"] = "$(_jl_toast_dir)"
-    end
-    println(ENV)
-  end
-
   # Add header locations: toast, include, libfe, libmath
   addHeaderDir(_jl_toast_dir; kind = C_System)
   addHeaderDir(joinpath(_jl_toast_dir, "include"); kind = C_System)
@@ -42,12 +32,10 @@ function __init__()
   # cxxinclude("source.h")          # Source and detector profiles
 
   # Import dynamic libraries: libsuperlu, libmath, libfe
-  cd(_jl_toast_dir) do
-    Libdl.dlopen(_jl_toast_libsuperlu, Libdl.RTLD_GLOBAL)
-    Libdl.dlopen(_jl_toast_libmath, Libdl.RTLD_GLOBAL)
-    Libdl.dlopen(_jl_toast_libfe, Libdl.RTLD_GLOBAL)
-    Libdl.dlopen(_jl_toast_libstoast, Libdl.RTLD_GLOBAL)
-  end
+  Libdl.dlopen(_jl_toast_libsuperlu, Libdl.RTLD_GLOBAL)
+  Libdl.dlopen(_jl_toast_libmath, Libdl.RTLD_GLOBAL)
+  Libdl.dlopen(_jl_toast_libfe, Libdl.RTLD_GLOBAL)
+  Libdl.dlopen(_jl_toast_libstoast, Libdl.RTLD_GLOBAL)
 
   # Initialise Toast++ thread pool
   @cxx Task_Init(0)
