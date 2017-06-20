@@ -69,7 +69,7 @@ An enumeration of source types, Isotropic, or Neumann.
 """
 @enum SourceTypes Neumann Isotropic
 
-abstract Source
+@compat abstract type Source end
 
 """
   PointSource(mesh, centre, sourcetype=Isotropic)

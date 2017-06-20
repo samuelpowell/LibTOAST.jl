@@ -2,8 +2,7 @@
 # Copyright (C) 2017 Samuel Powell
 
 # Import
-import Base: convert, size, linearindexing, getindex, setindex!, zero, similar,
-  zero, one, fill, \, gradient
+import Base: convert, size, getindex, setindex!, zero, similar, zero, one, fill, \, gradient
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -12,7 +11,7 @@ export gradient
 
 @enum MapTransforms _nb _ng _ns _bn _bg _bs _sn _sb _sg _gn _gs _gb
 
-typealias Reltypes Union{Float64, Complex{Float64}}
+@compat const Reltypes = Union{Float64, Complex{Float64}}
 
 #
 # Coefficent types
@@ -43,7 +42,7 @@ Return an uninitialised nodal coefficient array for a basis defined on the `mesh
 NodalCoeff(mesh::Mesh) = NodalCoeff(mesh, Float64)
 NodalCoeff{T}(mesh::Mesh, ::Type{T}) = NodalCoeff(mesh, Vector{T}(nodecount(mesh)))
 
-Base.linearindexing{T<:NodalCoeff}(::Type{T}) = Base.LinearFast()
+@compat Base.IndexStyle(::Type{<:NodalCoeff}) = IndexLinear()
 Base.similar{T,Te}(coeff::NodalCoeff{T}, ::Type{Te}, dims::Dims) = NodalCoeff(coeff.mesh, T)
 size(coeff::NodalCoeff) = (length(coeff.data),)
 getindex(coeff::NodalCoeff, i::Int) = coeff.data[i]
@@ -75,8 +74,8 @@ function fill{T}(::Type{NodalCoeff}, mesh::Mesh, value::T)
 end
 
 # Raster coefficients represent functions in one of the raster bases
-abstract RasterCoeffTypes{T} <: AbstractArray{T, 1}
-Base.linearindexing{T<:RasterCoeffTypes}(::Type{T}) = Base.LinearFast()
+@compat abstract type RasterCoeffTypes{T} <: AbstractArray{T, 1} end
+@compat Base.IndexStyle(::Type{<:RasterCoeffTypes}) = IndexLinear()
 getindex{T<:RasterCoeffTypes}(coeff::T, i::Int) = coeff.data[i]
 setindex!{T<:RasterCoeffTypes}(coeff::T, v, i::Int) = (coeff.data[i] = v)
 
@@ -441,7 +440,7 @@ function gradient(coeff::IntermediateCoeff)
   rptr = coeff.rast.ptr
   coptr = pointer(coeff.data)
 
-  ∇coeff = Array(Float64, len, ndim)
+  ∇coeff = Array{Float64}(len, ndim)
   gcoptr = pointer(∇coeff)
 
   icxx"""
@@ -483,7 +482,7 @@ function gradient(coeff::IntermediateCoeff{Complex{Float64}})
   rcoptr = pointer(rcoeff)
   icoptr = pointer(icoeff)
 
-  ∇coeff = Array(Float64, len*2, ndim)
+  ∇coeff = Array{Float64}(len*2, ndim)
   gcoptr = pointer(∇coeff)
 
   icxx"""

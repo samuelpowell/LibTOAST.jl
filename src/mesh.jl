@@ -326,7 +326,7 @@ function data(mesh::Mesh)
 
   ndim = dimensions(mesh)
   nvtx = nodecount(mesh)
-  vtx = Array(Float64, nvtx, ndim)
+  vtx = Array{Float64}(nvtx, ndim)
   vtxptr = pointer(vtx)
 
   icxx"""
@@ -338,7 +338,7 @@ function data(mesh::Mesh)
 
   mnnd = maxnodes(mesh)
   nele = elemcount(mesh)
-  ele = Array(Cint, nele, mnnd)
+  ele = Array{Cint}(nele, mnnd)
   eleptr = pointer(ele)
 
   icxx"""
@@ -379,7 +379,7 @@ function surface(mesh::Mesh)
   ndim = dimensions(mesh)
   nbnd = icxx"""$(meshptr)->nlist.NumberOf(BND_ANY);"""
 
-  vtx = Array(Float64, nbnd, ndim)
+  vtx = Array{Float64}(nbnd, ndim)
   vtxptr = pointer(vtx)
 
   icxx"""
@@ -389,7 +389,7 @@ function surface(mesh::Mesh)
           *$(vtxptr)++ = $(meshptr)->nlist[j][i];
   """
 
-  bndidx = Array(Cint, nlen)
+  bndidx = Array{Cint}(nlen)
   bndidxptr = pointer(bndidx)
 
   flen = Vector{Cint}(2)
@@ -412,7 +412,7 @@ function surface(mesh::Mesh)
     delete[] bndsdlist;
   """
 
-  idx = Array(Cint, flen[1], flen[2])
+  idx = Array{Cint}(flen[1], flen[2])
   idxptr = pointer(idx)
 
   icxx"""
