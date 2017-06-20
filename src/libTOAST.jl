@@ -21,6 +21,7 @@ function __init__()
     else
       ENV["LD_LIBRARY_PATH"] = "$(_jl_toast_dir)"
     end
+    println(ENV)
   end
 
   # Add header locations: toast, include, libfe, libmath
@@ -41,10 +42,12 @@ function __init__()
   # cxxinclude("source.h")          # Source and detector profiles
 
   # Import dynamic libraries: libsuperlu, libmath, libfe
-  Libdl.dlopen(_jl_toast_libsuperlu, Libdl.RTLD_GLOBAL)
-  Libdl.dlopen(_jl_toast_libmath, Libdl.RTLD_GLOBAL)
-  Libdl.dlopen(_jl_toast_libfe, Libdl.RTLD_GLOBAL)
-  Libdl.dlopen(_jl_toast_libstoast, Libdl.RTLD_GLOBAL)
+  cd(_jl_toast_dir) do
+    Libdl.dlopen(_jl_toast_libsuperlu, Libdl.RTLD_GLOBAL)
+    Libdl.dlopen(_jl_toast_libmath, Libdl.RTLD_GLOBAL)
+    Libdl.dlopen(_jl_toast_libfe, Libdl.RTLD_GLOBAL)
+    Libdl.dlopen(_jl_toast_libstoast, Libdl.RTLD_GLOBAL)
+  end
 
   # Initialise Toast++ thread pool
   @cxx Task_Init(0)
