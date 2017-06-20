@@ -16,9 +16,13 @@ function __init__()
 
   # On linux add our directory to the loader path
   if is_linux()
-    ENV["LD_LIBRARY_PATH"] = "$(_jl_toast_dir):"*ENV["LD_LIBRARY_PATH"]
+    if haskey(ENV, "LD_LIBRARY_PATH")
+      ENV["LD_LIBRARY_PATH"] = "$(_jl_toast_dir):"*ENV["LD_LIBRARY_PATH"]
+    else
+      ENV["LD_LIBRARY_PATH"] = "$(_jl_toast_dir)"
+    end
   end
-  
+
   # Add header locations: toast, include, libfe, libmath
   addHeaderDir(_jl_toast_dir; kind = C_System)
   addHeaderDir(joinpath(_jl_toast_dir, "include"); kind = C_System)
