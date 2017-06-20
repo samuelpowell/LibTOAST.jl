@@ -1,6 +1,6 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-dist: trusty
+
 sudo: false
 os:
   - linux
@@ -17,27 +17,27 @@ git:
 ## uncomment the following lines to allow failures on nightly julia
 ## (tests will run but not make your overall status red)
 matrix:
- allow_failures:
- - julia: nightly
+  allow_failures:
+    - julia: nightly
 
-
+# We require C++11 compiler
 addons:
   apt:
     sources:
-       - ubuntu-toolchain-r-test
-       - george-edison55-precise-backports
+      - ubuntu-toolchain-r-test
+      - george-edison55-precise-backports
     packages:
-       - cmake
-       - cmake-data
-       - gcc-6
-       - g++-6
-       - binutils
-       - gfortran
-       - libblas-dev
-       - liblapack-dev
-       - libgmp-dev
-       - libmpfr-dev
-#
+      - cmake
+      - cmake-data
+      - gcc-6
+      - g++-6
+      - binutils
+      - gfortran
+      - libblas-dev
+      - liblapack-dev
+      - libgmp-dev
+      - libmpfr-dev
+      #
 # addons:
 #   apt:
 #     sources:
@@ -57,9 +57,15 @@ addons:
 install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX="g++-6" CC="gcc-6"; fi
 
+
 ## uncomment the following lines to override the default test script
 script:
- - PREBUILT_CI_BINARIES=1 julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
+ - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ ! -f $HOME/usr/bin/ld ]; then
+       wget https://ftp.gnu.org/gnu/binutils/binutils-2.27.tar.gz;
+       tar xzf binutils-2.27.tar.gz;
+       (cd binutils-2.27 && ./configure --prefix=$HOME/usr && make && make install);
+    fi;
+  - PREBUILT_CI_BINARIES=1 julia -e 'Pkg.clone(pwd()); Pkg.build("libTOAST"); Pkg.test("libTOAST"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("libTOAST")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
