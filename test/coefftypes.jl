@@ -4,7 +4,7 @@
 @testset "CoeffTypes" begin
 
   vtx,  = data(mesh2D)
-  nprm = sin(5*vtx[:,1]./15) + cos(4*vtx[:,2]./15)
+  nprm = sin.(5.*vtx[:,1]./15) .+ cos.(4.*vtx[:,2]./15)
 
   nx, ny = 250, 250
   pixelmap = PixelMap(mesh2D, (nx,ny))
