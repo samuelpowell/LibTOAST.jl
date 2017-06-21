@@ -14,6 +14,10 @@
 
   nc = NodalCoeff(mesh2D, nprm)
   rc = SolutionCoeff(pixelmap, nc)
+  rcpdx = similar(rc)
+  rcmdx = similar(rc)
+  rcp1 = copy(rc)
+  rcp1 .+= 1
   r0 = SolutionCoeff(pixelmap, zeros(slen(pixelmap)))
 
   @testset "TK0" begin
@@ -33,15 +37,16 @@
     reg = RegulTK1(rc)
 
     @test val(reg, rc) == 0.0
-    @test ≈(val(reg, rc+1), 0.0, atol=1e-20)
+    @test ≈(val(reg, rcp1), 0.0, atol=1e-20)
 
     # Finite difference the grad
     g = grad(reg, rc)
 
     for i = 1:fdiskip:length(g)
-    	dx = zeros(size(rc))
-    	dx[i] = 0.0001*rc[i]
-    	@test abs((val(reg, rc+dx) - val(reg, rc-dx))/(2*dx[i]) - g[i]) < 1e-5
+      dx = 0.0001*rc[i]
+      rcpdx .= rc; rcpdx[i] += dx
+      rcmdx .= rc; rcmdx[i] -= dx
+      @test abs((val(reg, rcpdx) - val(reg, rcmdx))/(2*dx) - g[i]) < 1e-5
     end
 
   end
@@ -51,15 +56,16 @@
     reg = RegulTV(rc)
 
     @test val(reg, rc) == 0.0
-    @test ≈(val(reg, rc+1), 0.0, atol=1e-20)
+    @test ≈(val(reg, rcp1), 0.0, atol=1e-20)
 
     # Finite difference the grad
     g = grad(reg, rc)
 
     for i = 1:fdiskip:length(g)
-      dx = zeros(size(rc))
-      dx[i] = 0.0001*rc[i]
-      @test abs((val(reg, rc+dx) - val(reg, rc-dx))/(2*dx[i]) - g[i]) < 1e-5
+      dx = 0.0001*rc[i]
+      rcpdx .= rc; rcpdx[i] += dx
+      rcmdx .= rc; rcmdx[i] -= dx
+      @test abs((val(reg, rcpdx) - val(reg, rcmdx))/(2*dx) - g[i]) < 1e-5
     end
 
   end
@@ -69,15 +75,16 @@
     reg = RegulPM(rc)
 
     @test val(reg, rc) == 0.0
-    @test ≈(val(reg, rc+1), 0.0, atol=1e-20)
+    @test ≈(val(reg, rcp1), 0.0, atol=1e-20)
 
     # Finite difference the grad
     g = grad(reg, rc)
 
     for i = 1:fdiskip:length(g)
-      dx = zeros(size(rc))
-      dx[i] = 0.0001*rc[i]
-      @test abs((val(reg, rc+dx) - val(reg, rc-dx))/(2*dx[i]) - g[i]) < 1e-5
+      dx = 0.0001*rc[i]
+      rcpdx .= rc; rcpdx[i] += dx
+      rcmdx .= rc; rcmdx[i] -= dx
+      @test abs((val(reg, rcpdx) - val(reg, rcmdx))/(2*dx) - g[i]) < 1e-5
     end
 
   end
