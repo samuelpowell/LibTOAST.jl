@@ -11,7 +11,7 @@ export gradient
 
 @enum MapTransforms _nb _ng _ns _bn _bg _bs _sn _sb _sg _gn _gs _gb
 
-@compat const Reltypes = Union{Float64, Complex{Float64}}
+const Reltypes = Union{Float64, Complex{Float64}}
 
 #
 # Coefficent types
