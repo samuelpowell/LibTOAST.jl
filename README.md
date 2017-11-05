@@ -26,13 +26,13 @@ Ensure that you have a working Cxx.jl installation, then install and build libTO
 
 ```
 julia> Pkg.clone("git@github.com:samuelpowell/libTOAST.jl.git")
-julia> Pkg.build("TOAST")
+julia> Pkg.build("libTOAST")
 ```
 
 The libTOAST.jl build process will download the requisite binaries and the header files required to call the library, these are stored in the package directory. You can test that libTOAST.jl is properly configured by running the unit tests.
 
 ```
-Pkg.test("TOAST")
+Pkg.test("libTOAST")
 ```
 
 ## A first example
@@ -101,7 +101,7 @@ The TOAST++ backend reports that it has initialised a pool of eight threads in w
 In this example we will define the domain by loading a mesh from a file.
 
 ```
-julia> meshdir = joinpath(TOAST._jl_toast_dir, "test", "2D", "meshes")
+julia> meshdir = joinpath(libTOAST._jl_toast_dir, "test", "2D", "meshes")
 
 julia> mesh = Mesh(joinpath(meshdir, "circle25_32.msh"));
 INFO: Loaded 250114 bytes from /Users/spowell/.julia/v0.5/TOAST/deps/toastpp-2.0.2/test/2D/meshes/circle25_32.msh.
