@@ -29,9 +29,9 @@ parameters x₀ (defined in a SolutionCoeff basis).
 ``f(x) = ‖x-x₀‖²``
 
 """
-type RegulTK0 <: Regul
+mutable struct RegulTK0 <: Regul
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   rast::Raster
 
   function RegulTK0(x0::SolutionCoeff)
@@ -62,9 +62,9 @@ parameters x₀ (defined in a SolutionCoeff basis).
 
 ``f(x) = ‖∇(x-x₀)‖²``
 """
-type RegulTK1 <: Regul
+mutable struct RegulTK1 <: Regul
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   rast::Raster
 
   function RegulTK1(x0::SolutionCoeff)
@@ -95,9 +95,9 @@ end
 Construct a soft Total-Variation regularisation functional with parameter
 β and baseline parameters x₀ (defined in a SolutionCoeff basis).
 """
-type RegulTV <: Regul
+mutable struct RegulTV <: Regul
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   rast::Raster
 
   function RegulTV(x0::SolutionCoeff, β::Float64)
@@ -122,7 +122,7 @@ type RegulTV <: Regul
 end
 
 function RegulTV(x0::SolutionCoeff)
-  info("Using default TV β = 1.0")
+  @info "Using default TV β = 1.0"
   return RegulTV(x0, 1.0)
 end
 
@@ -132,9 +132,9 @@ end
 Construct a Perona-Malik regularisation functional with parameter T, and
 baseline parameters x₀ (defined in a SolutionCoeff basis).
 """
-type RegulPM <: Regul
+mutable struct RegulPM <: Regul
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   rast::Raster
 
   function RegulPM(x0::SolutionCoeff, T::Float64)
@@ -159,12 +159,12 @@ type RegulPM <: Regul
 end
 
 function RegulPM(x0::SolutionCoeff)
-  info("Using default PM T = 1.0")
+  @info "Using default PM T = 1.0"
   return RegulPM(x0, 1.0)
 end
 
 # Delete a raster map
-_regul_delete{T<:Regul}(regul::T) = finalize(regul.ptr)
+_regul_delete(regul::T) where {T<:Regul} = finalize(regul.ptr)
 
 # Regul val
 """
@@ -173,7 +173,7 @@ _regul_delete{T<:Regul}(regul::T) = finalize(regul.ptr)
 Return the value of the regularisation functional defined by `regul` evaluated
 with parameters `x` (defined in a SolutionCoeff basis).
 """
-function val{T<:Regul}(regul::T, x::SolutionCoeff)
+function val(regul::T, x::SolutionCoeff) where {T<:Regul}
 
   assert(regul.rast == x.rast)
 
@@ -194,7 +194,7 @@ end
 Return the gradient of the regularisation functional defined by `regul` evaluated
 with parameters `x` (defined in a SolutionCoeff basis).
 """
-function grad{T<:Regul}(regul::T, x::SolutionCoeff)
+function grad(regul::T, x::SolutionCoeff) where {T<:Regul}
 
   assert(regul.rast == x.rast)
 
@@ -221,7 +221,7 @@ end
 Return the Hessian of the regularisation functional defined by `regul` evaluated
 with parameters `x` (defined in a SolutionCoeff basis).
 """
-function hess{T<:Regul}(regul::T, x::SolutionCoeff)
+function hess(regul::T, x::SolutionCoeff) where {T<:Regul}
   #
   # assert(regul.rast == x.rast)
   #

@@ -82,7 +82,7 @@ special-purpose RHS assembly functions.
 * `centre`: centre point of the Guassian
 * `sourcetype::SourceTypes`: `Isotropic`, or `Neumann` (see SourceTypes).
 """
-type PointSource <: Source
+mutable struct PointSource <: Source
 
   mesh::Mesh
   centre::Vector{Float64}
@@ -111,7 +111,7 @@ special-purpose RHS assembly functions.
 * `width`: full-width half maximum of the Guassian source
 * `sourcetype::SourceTypes`: `Isotropic`, or `Neumann` (see SourceTypes).
 """
-type GaussianSource <: Source
+mutable struct GaussianSource <: Source
   mesh::Mesh
   centre::Vector{Float64}
   width::Float64
@@ -276,7 +276,7 @@ end
 Special purpose assembly function to generate an right hand side source vector
 from a source specification conforming to the `Sources` supertype.
 """
-function assemble{T<:Source}(source::T)
+function assemble(source::T) where {T<:Source}
 
   rhs = zero(NodalCoeff, source.mesh)
 
