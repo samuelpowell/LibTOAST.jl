@@ -18,13 +18,13 @@ export delete, string, print, show, load, save,
 A reference to a TOAST mesh, with cached sparsity structure for re-use in the
 generation of, e.g., system matrices.
 """
-type Mesh
+mutable struct Mesh
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   rowptr::Array{Cint,1}
   colidx::Array{Cint,1}
 
-  function Mesh(ptr::Cxx.CppPtr)
+  function Mesh(ptr::Cxx.CxxCore.CppPtr)
 
     # Remove unused nodes
     if @cxx ptr->Shrink()
@@ -62,7 +62,7 @@ Construct a new mesh given a list of vertices, elements, and element types.
 dimension, `nels` is the number of elements, `mnnd` is the maximium number of
 nodes per element.
 """
-function Mesh{I <: Integer}(vtxs::Matrix{Float64}, elem::Matrix{I}, eltp::Vector{I})
+function Mesh(vtxs::Matrix{Float64}, elem::Matrix{I}, eltp::Vector{I}) where {I <: Integer}
   meshptr = _mesh_new()
   _make!(meshptr,vtxs,elem,eltp)
   return Mesh(meshptr)
@@ -87,7 +87,7 @@ _mesh_new() = @cxxnew TOAST_Mesh()
 _mesh_delete(mesh) = finalize(mesh.ptr) # icxx"""delete $(mesh.ptr);"""
 
 # Compute sparsity structure in zero-based CSR format and 1-based CSC.
-function _sparsity!(ptr::Cxx.CppPtr)
+function _sparsity!(ptr::Cxx.CxxCore.CppPtr)
 
   rowptr = Ptr{Int32}[0]
   colidx = Ptr{Int32}[0]
@@ -110,7 +110,7 @@ function _sparsity!(ptr::Cxx.CppPtr)
 end
 
 # Build a mesh from a matrix of vertices, elements, and element types
-function _make!(meshptr::Cxx.CppPtr, node, elem, eltp)
+function _make!(meshptr::Cxx.CxxCore.CppPtr, node, elem, eltp)
 
   jnvtx = size(node,1)
   jnel = size(elem,1)
@@ -228,7 +228,7 @@ print(io::IO, mesh::Mesh) = print(io, string(mesh))
 show(io::IO, mesh::Mesh) = print(io, mesh)
 
 # Load a mesh from the specified filename
-function _load!(ptr::Cxx.CppPtr, fn::String)
+function _load!(ptr::Cxx.CxxCore.CppPtr, fn::String)
 
   # TODO: We would like to do something like this:
   # ifs = @cxx std::ifstream(pointer(filename))

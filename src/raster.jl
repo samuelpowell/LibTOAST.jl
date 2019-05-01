@@ -34,12 +34,12 @@ integer multiple, gscale, of pixels.
 * `dims::NTuple{ndim,Integer}`: the dimensions of the raster basis
 * `gscale=2::Int`: the scale factor used for the intermediate mapping raster
 """
-type PixelMap <: Raster
+mutable struct PixelMap <: Raster
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   mesh::Mesh
 
-  function PixelMap{N}(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2)
+  function PixelMap(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2) where {N}
     rasterptr = _rasterast_new(mesh, Pixel, bdim, gscale)
     pixelmap = new(rasterptr, mesh)
     finalizer(pixelmap, _raster_delete)
@@ -49,12 +49,12 @@ type PixelMap <: Raster
 end
 
 # Create and initialise a new basis mapper
-function _rasterast_new{N}(mesh::Mesh,
-                           basis::RasterBases,
-                           bdim::NTuple{N,Integer},
-                           gscale::Integer;
-                           blobarg::Float64 = 1.0,
-                           blobrad::Float64 = 1.0)
+function _rasterast_new(mesh::Mesh,
+                        basis::RasterBases,
+                        bdim::NTuple{N,Integer},
+                        gscale::Integer;
+                        blobarg::Float64 = 1.0,
+                        blobrad::Float64 = 1.0) where {N}
 
   bdimarr = [Cint(i) for i in bdim]
   gdimarr = gscale*bdimarr

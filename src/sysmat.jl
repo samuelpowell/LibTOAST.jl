@@ -7,9 +7,9 @@ import Base: sparse
 # Export types
 export SystemMatrix
 
-type SystemMatrix
+mutable struct SystemMatrix
 
-  ptr::Cxx.CppPtr
+  ptr::Cxx.CxxCore.CppPtr
   mesh::Mesh
 
   function SystemMatrix(mesh)
