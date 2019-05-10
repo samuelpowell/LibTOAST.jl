@@ -22,12 +22,12 @@ libTOAST.jl directly calls the underlying C++ library using [Cxx.jl](https://git
 
 ## Installation
 
-Ensure that you have a working Cxx.jl installation, then install and build libTOAST.jl package as follows.
+Ensure that you have a working Cxx.jl installation, then install and build libTOAST.jl package as follows. Installation on Linux requires that you have the `patchelf` utility installed.
 
 ```
-julia> Pkg.clone("git@github.com:samuelpowell/libTOAST.jl.git")
-julia> Pkg.build("libTOAST")
-```
+julia> ] add git@github.com:samuelpowell/libTOAST.jl.git
+julia> ] build libTOAST
+
 
 The libTOAST.jl build process will download the requisite binaries and the header files required to call the library, these are stored in the package directory. You can test that libTOAST.jl is properly configured by running the unit tests.
 
