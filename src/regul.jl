@@ -1,5 +1,5 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # Imports
 
@@ -48,7 +48,7 @@ mutable struct RegulTK0 <: Regul
     """
 
     regul = new(regulptr, rast)
-    finalizer(regul, _regul_delete)
+    finalizer(_regul_delete, regul)
     return regul
   end
 
@@ -83,7 +83,7 @@ mutable struct RegulTK1 <: Regul
     """
 
     regul = new(regulptr, rast)
-    finalizer(regul, _regul_delete)
+    finalizer(_regul_delete, regul)
     return regul
   end
 
@@ -114,7 +114,7 @@ mutable struct RegulTV <: Regul
     """
 
     regul = new(regulptr, rast)
-    finalizer(regul, _regul_delete)
+    finalizer(_regul_delete, regul)
     return regul
 
   end
@@ -151,7 +151,7 @@ mutable struct RegulPM <: Regul
     """
 
     regul = new(regulptr, rast)
-    finalizer(regul, _regul_delete)
+    finalizer(_regul_delete, regul)
     return regul
 
   end
@@ -175,7 +175,7 @@ with parameters `x` (defined in a SolutionCoeff basis).
 """
 function val(regul::T, x::SolutionCoeff) where {T<:Regul}
 
-  assert(regul.rast == x.rast)
+  @assert regul.rast == x.rast
 
   xptr = pointer(x.data)
   xlen = length(x)
@@ -196,7 +196,7 @@ with parameters `x` (defined in a SolutionCoeff basis).
 """
 function grad(regul::T, x::SolutionCoeff) where {T<:Regul}
 
-  assert(regul.rast == x.rast)
+  @assert regul.rast == x.rast
 
   g = SolutionCoeff(regul.rast)
 

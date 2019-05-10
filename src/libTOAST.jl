@@ -1,12 +1,15 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+__precompile__(false)
+
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 module libTOAST
 
+using SparseArrays
+using LinearAlgebra
+using Libdl
 using Compat
 using Cxx
-using SparseArrays
-using Libdl
 
 # Set verbosity, provide info function
 verbose = true

@@ -1,8 +1,8 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # Import
-import Base: convert, size, getindex, setindex!, zero, similar, zero, one, fill, \, gradient
+import Base: convert, size, getindex, setindex!, zero, similar, zero, one, fill, \
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -29,7 +29,7 @@ mutable struct NodalCoeff{T} <: AbstractArray{T, 1}
   mesh::Mesh
   data::Vector{T}
   function NodalCoeff(mesh::Mesh, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == nodecount(mesh))
+    @assert length(data) == nodecount(mesh)
     return new{T}(mesh,data)
   end
 end
@@ -40,7 +40,7 @@ end
 Return an uninitialised nodal coefficient array for a basis defined on the `mesh`.
 """
 NodalCoeff(mesh::Mesh) = NodalCoeff(mesh, Float64)
-NodalCoeff(mesh::Mesh, ::Type{T}) where T = NodalCoeff(mesh, Vector{T}(nodecount(mesh)))
+NodalCoeff(mesh::Mesh, ::Type{T}) where T = NodalCoeff(mesh, Vector{T}(undef, nodecount(mesh)))
 
 @compat Base.IndexStyle(::Type{<:NodalCoeff}) = IndexLinear()
 Base.similar(coeff::NodalCoeff{T}, ::Type{Te}, dims::Dims) where {T,Te} = NodalCoeff(coeff.mesh, T)
@@ -116,7 +116,7 @@ mutable struct SolutionCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{T}
   function SolutionCoeff(rast::Raster, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == slen(rast))
+    @assert length(data) == slen(rast)
     return new{T}(rast,data)
   end
 end
@@ -136,8 +136,8 @@ function SolutionCoeff(rast::Raster, ci::NodalCoeff{T}) where {T}
   return co
 end
 
-SolutionCoeff(rast::Raster) = SolutionCoeff(rast, Float64)
-SolutionCoeff(rast::Raster, ::Type{T}) where {T} = SolutionCoeff(rast, Vector{T}(slen(rast)))
+SolutionCoeff(rast::R) where {R<:Raster} = SolutionCoeff(rast, Float64)
+SolutionCoeff(rast::R, ::Type{T}) where {T, R<:Raster} = SolutionCoeff(rast, Vector{T}(undef, slen(rast)))
 
 # Raster coefficients represent a function expressed in the rasterised basis,
 # which is defined over a square or cuboid redion, and may include superfluous
@@ -153,7 +153,7 @@ mutable struct RasterCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{Float64}
   function RasterCoeff(rast::Raster, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == blen(rast))
+    @assert length(data) == blen(rast)
     return new{T}(rast,data)
   end
 end
@@ -173,8 +173,8 @@ function RasterCoeff(rast::Raster, ci::NodalCoeff{T}) where {T}
   return co
 end
 
-RasterCoeff(rast::Raster) = RasterCoeff(rast, Float64)
-RasterCoeff(rast::Raster, ::Type{T}) where {T} = RasterCoeff(rast, Vector{T}(blen(rast)))
+RasterCoeff(rast::R) where {R<:Raster} = RasterCoeff(rast, Float64)
+RasterCoeff(rast::R, ::Type{T}) where {T, R<:Raster} = RasterCoeff(rast, Vector{T}(undef, blen(rast)))
 
 # Intermediate coefficients represent a function expressed in a higher resolution
 # version of the raster basis, and may include superfluous elements which are
@@ -183,7 +183,7 @@ mutable struct IntermediateCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{T}
   function IntermediateCoeff(rast::Raster, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == glen(rast))
+    @assert length(data) == glen(rast)
     return new{T}(rast,data)
   end
 end
@@ -210,8 +210,8 @@ end
 
 Return an uninitialised coefficient array for intermediate basis defined by the `raster`.
 """
-IntermediateCoeff(rast::Raster) = IntermediateCoeff(rast, Float64)
-IntermediateCoeff(rast::Raster, ::Type{T}) where {T} = IntermediateCoeff(rast, Vector{T}(glen(rast)))
+IntermediateCoeff(rast::R) where {R<:Raster} = IntermediateCoeff(rast, Float64)
+IntermediateCoeff(rast::R, ::Type{T}) where {T, R<:Raster} = IntermediateCoeff(rast, Vector{T}(undef, glen(rast)))
 
 #
 # Coefficient mapping (and construction)
@@ -440,7 +440,7 @@ function gradient(coeff::IntermediateCoeff)
   rptr = coeff.rast.ptr
   coptr = pointer(coeff.data)
 
-  ∇coeff = Array{Float64}(len, ndim)
+  ∇coeff = Array{Float64}(undef, len, ndim)
   gcoptr = pointer(∇coeff)
 
   icxx"""
@@ -482,7 +482,7 @@ function gradient(coeff::IntermediateCoeff{Complex{Float64}})
   rcoptr = pointer(rcoeff)
   icoptr = pointer(icoeff)
 
-  ∇coeff = Array{Float64}(len*2, ndim)
+  ∇coeff = Array{Float64}(undef, len*2, ndim)
   gcoptr = pointer(∇coeff)
 
   icxx"""

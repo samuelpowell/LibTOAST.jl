@@ -1,5 +1,5 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 @testset "Regularisation" begin
 
@@ -10,7 +10,7 @@
   vtx,  = data(mesh2D)
 
   # Create some reasonably smooth function
-  nprm = sin.(5.*vtx[:,1]./15) .+ cos.(4.*vtx[:,2]./15)
+  nprm = sin.(5.0*vtx[:,1]./15) .+ cos.(4.0*vtx[:,2]./15)
 
   nc = NodalCoeff(mesh2D, nprm)
   rc = SolutionCoeff(pixelmap, nc)

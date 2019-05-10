@@ -1,5 +1,5 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # Imports
 import Base: string, print, show
@@ -42,7 +42,7 @@ mutable struct PixelMap <: Raster
   function PixelMap(mesh::Mesh, bdim::NTuple{N,Integer}; gscale::Integer=2) where {N}
     rasterptr = _rasterast_new(mesh, Pixel, bdim, gscale)
     pixelmap = new(rasterptr, mesh)
-    finalizer(pixelmap, _raster_delete)
+    finalizer(_raster_delete, pixelmap)
     return pixelmap
   end
 
@@ -51,64 +51,56 @@ end
 # Create and initialise a new basis mapper
 function _rasterast_new(mesh::Mesh,
                         basis::RasterBases,
-                        bdim::NTuple{N,Integer},
+                        dims::NTuple{N,Integer},
                         gscale::Integer;
                         blobarg::Float64 = 1.0,
                         blobrad::Float64 = 1.0) where {N}
 
-  bdimarr = [Cint(i) for i in bdim]
-  gdimarr = gscale*bdimarr
-  dim = dimensions(mesh)
-  assert(length(bdimarr)==dim)
+  bdimarr = [Cint(i) for i in dims]
+  gdimarr = [Cint(i*gscale) for i in dims]
+  basiscode = Cint(basis)
+  dim = Cint(dimensions(mesh))
+
+  @assert length(bdimarr)==dim
 
   meshptr = mesh.ptr
-  bdimptr = pointer(bdimarr)
-  gdimptr = pointer(gdimarr)
 
-  basiscode = Int(basis)
-
+  bd = @cxxnew IVector(Cint(2), pointer(bdimarr), icxx"""return DEEP_COPY;""")
+  gd = @cxxnew IVector(Cint(2), pointer(gdimarr), icxx"""return DEEP_COPY;""")
+  
   ptr = icxx"""
 
     RDenseMatrix *bb = 0;
-
-    IVector bdim($dim);
-    for (int i = 0; i < $dim; i++)
-        bdim[i] = $(bdimptr)[i];
-
-    IVector gdim($(dim));
-    for (int i=0; i < $(dim); i++)
-        gdim[i] = $(gdimptr)[i];
-
     Raster *raster = 0;
 
     switch($basiscode) {
       case 0:
-        raster = new Raster_Pixel (bdim, gdim, $meshptr, bb);
+        raster = new Raster_Pixel (*$(bd), *$(gd), $meshptr, bb);
         break;
       case 1:
-        raster = new Raster_CubicPixel (bdim, gdim, $meshptr, bb);
+        raster = new Raster_CubicPixel (*$(bd), *$(gd), $meshptr, bb);
         break;
       case 2:
-        raster = new Raster_GaussBlob (bdim, gdim, $meshptr, $blobarg, $blobrad, bb);
+        raster = new Raster_GaussBlob (*$(bd),*$(gd), $meshptr, $blobarg, $blobrad, bb);
         break;
       case 3:
-        raster = new Raster_BesselBlob (bdim, gdim, $meshptr, $blobarg, $blobrad, bb);
+        raster = new Raster_BesselBlob (*$(bd), *$(gd), $meshptr, $blobarg, $blobrad, bb);
         break;
       case 4:
-        raster = new Raster_HanningBlob (bdim, gdim, $meshptr, $blobrad, bb);
+        raster = new Raster_HanningBlob (*$(bd), *$(gd), $meshptr, $blobrad, bb);
         break;
       case 5:
-        raster = new Raster_RampBlob (bdim, gdim, $meshptr, $blobrad, bb);
+        raster = new Raster_RampBlob (*$(bd), *$(gd), $meshptr, $blobrad, bb);
         break;
       case 6:
-        raster = new Raster_SplineBlob (bdim, gdim, $meshptr, $blobrad, bb);
+        raster = new Raster_SplineBlob (*$(bd), *$(gd), $meshptr, $blobrad, bb);
         break;
     }
 
     return raster;
   """
 
-  assert(ptr != Ptr{Void}(0x0000000000000000))
+  @assert ptr != C_NULL
 
   return ptr;
 
@@ -156,7 +148,7 @@ Return the number of elements in each dimension of the raster basis.
 function bdim(raster::Raster)
 
   ndim = dimensions(raster.mesh)
-  dims = Vector{Int}(ndim)
+  dims = Vector{Int}(undef, ndim)
   dimp = pointer(dims)
 
   icxx"""

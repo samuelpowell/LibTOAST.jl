@@ -1,11 +1,11 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # Imports
-import Base: sparse
+import SparseArrays: sparse
 
 # Export types
-export SystemMatrix
+export SystemMatrix, sparse
 
 mutable struct SystemMatrix
 
@@ -21,7 +21,7 @@ mutable struct SystemMatrix
 
     sysmat = new(matptr, mesh)
 
-    finalizer(sysmat, _sysmat_delete)
+    finalizer(_sysmat_delete, sysmat)
 
     return sysmat
 

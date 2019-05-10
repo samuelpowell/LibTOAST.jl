@@ -1,5 +1,5 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # Imports
 import Base: string, print, show
@@ -40,7 +40,7 @@ mutable struct Mesh
     rowptr, colidx = _sparsity!(ptr)
 
     mesh = new(ptr, rowptr, colidx)
-    finalizer(mesh, _mesh_delete)
+    finalizer(_mesh_delete, mesh)
 
     return mesh
 
@@ -99,11 +99,11 @@ function _sparsity!(ptr::Cxx.CxxCore.CppPtr)
 
   nnd = @cxx ptr->nlen()
 
-  _info("Number of vertices: ", nnd, ", number of nonzeros: ", nnzero[1])
+  _info("Number of vertices: $nnd, number of nonzeros: $(nnzero[1])")
 
   # Zero based rowptr and colidx, for resuse when building a system matrix
-  rowptr = unsafe_wrap(Array,rowptr[1],nnd+1,true)
-  colidx = unsafe_wrap(Array,colidx[1],nnzero[1],true)
+  rowptr = unsafe_wrap(Array, rowptr[1], nnd+1, own = true)
+  colidx = unsafe_wrap(Array, colidx[1], nnzero[1], own = true)
 
   return rowptr, colidx
 
@@ -234,6 +234,7 @@ function _load!(ptr::Cxx.CxxCore.CppPtr, fn::String)
   # ifs = @cxx std::ifstream(pointer(filename))
   # icxx"""$(ifs) >> *$(obj.meshptr);"""
 
+  # @show ptr
   # Check if file exists
   if !isfile(fn)
     error("File not found ", fn)
@@ -246,7 +247,7 @@ function _load!(ptr::Cxx.CxxCore.CppPtr, fn::String)
     ifs.close();
   """
 
-  _info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
+  _info("Loaded $(stat(fn).size) bytes from $(fn).")
 
   return
 
@@ -266,7 +267,7 @@ function save(mesh::Mesh, fn::String)
     ofs.close();
   """
 
-  _info("Mesh written to ", fn, ", ", stat(fn).size, "bytes.")
+  _info("Mesh written to $(fn), $(stat(fn).size) bytes.")
 
   return nothing
 
@@ -326,19 +327,26 @@ function data(mesh::Mesh)
 
   ndim = dimensions(mesh)
   nvtx = nodecount(mesh)
-  vtx = Array{Float64}(nvtx, ndim)
+  vtx = Array{Float64,2}(undef, nvtx, ndim)
   vtxptr = pointer(vtx)
+
+  # for i in 0:(ndim-1), j in 0:(nvtx-1)
+  #   icxx"""
+  #     *$(vtxptr)++ = $(meshptr)->nlist[$j][$i];
+  #     """
+  # end
+
 
   icxx"""
     // vertex coordinate list
     for (int i = 0; i < $ndim; i++)
-        for (int j = 0; j < $nvtx; j++)
+      for (int j = 0; j < $nvtx; j++)
             *$(vtxptr)++ = $(meshptr)->nlist[j][i];
   """
 
   mnnd = maxnodes(mesh)
   nele = elemcount(mesh)
-  ele = Array{Cint}(nele, mnnd)
+  ele = Array{Cint}(undef, nele, mnnd)
   eleptr = pointer(ele)
 
   icxx"""
@@ -352,7 +360,7 @@ function data(mesh::Mesh)
                 *$(eleptr)++ = 0;
   """
 
-  elt = Vector{Cint}(nele)
+  elt = Vector{Cint}(undef, nele)
   eltptr = pointer(elt)
 
   icxx"""
@@ -379,57 +387,54 @@ function surface(mesh::Mesh)
   ndim = dimensions(mesh)
   nbnd = icxx"""$(meshptr)->nlist.NumberOf(BND_ANY);"""
 
-  vtx = Array{Float64}(nbnd, ndim)
-  vtxptr = pointer(vtx)
+  vtx = Array{Float64}(undef, nbnd, ndim)
 
   icxx"""
     for (int i = 0; i < $(ndim); i++)
       for (int j = 0; j < $(nlen); j++)
         if ($(meshptr)->nlist[j].isBnd())
-          *$(vtxptr)++ = $(meshptr)->nlist[j][i];
+          *$(pointer(vtx))++ = $(meshptr)->nlist[j][i];
   """
 
-  bndidx = Array{Cint}(nlen)
-  bndidxptr = pointer(bndidx)
 
-  flen = Vector{Cint}(2)
-  nndptr = pointer(flen,1)
-  nfaceptr = pointer(flen,2)
+  bndidx = Array{Cint}(undef, nlen)
+  nnd = [Cint(0)] 
+  nface = [Cint(0)]
 
   icxx"""
     int  *bndellist, *bndsdlist;
 
     for (int j = 0, k = 0; j < $(nlen); j++)
-      $(bndidxptr)[j] = ($(meshptr)->nlist[j].isBnd() ? k++ : -1);
+      $(pointer(bndidx))[j] = ($(meshptr)->nlist[j].isBnd() ? k++ : -1);
 
     // NB: This assumes all elements contain the same number of vertices
-    *$(nndptr) = 0;
-    *$(nfaceptr) = $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
-    for (int j = 0; j < *$(nfaceptr); j++)
-      *$(nndptr) = ::max (*$(nndptr), $(meshptr)->elist[bndellist[j]]->nSideNode(bndsdlist[j]));
+    *$(pointer(nnd)) = 0;
+    *$(pointer(nface)) = $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
+    for (int j = 0; j < *$(pointer(nface)); j++)
+      *$(pointer(nnd)) = ::max (*$(pointer(nnd)), $(meshptr)->elist[bndellist[j]]->nSideNode(bndsdlist[j]));
 
     delete[] bndellist;
     delete[] bndsdlist;
   """
 
-  idx = Array{Cint}(flen[1], flen[2])
-  idxptr = pointer(idx)
+  idx = Array{Cint}(undef, nnd[1], nface[1])
+
 
   icxx"""
     int sd, nn, nd, bn, *bndellist, *bndsdlist;
 
     $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
 
-    for (int i = 0; i < *$(nndptr); i++)
-      for (int j = 0; j < *$(nfaceptr); j++) {
+    for (int i = 0; i < *$(pointer(nnd)); i++)
+      for (int j = 0; j < *$(pointer(nface)); j++) {
         Element *pel = $(meshptr)->elist[bndellist[j]];
         sd = bndsdlist[j];
         nn = pel->nSideNode (sd);
         if (i < nn) {
           nd = pel->Node[pel->SideNode (sd, i)];
-          bn = $(bndidxptr)[nd]+1;
+          bn = $(pointer(bndidx))[nd]+1;
         } else bn = 0;
-        *$(idxptr)++ = bn;
+        *$(pointer(idx))++ = bn;
       }
   """
 
@@ -445,7 +450,7 @@ Return the bounding box of the mesh in a ``2 \times dim`` matrix.
 function boundingbox(mesh::Mesh)
 
   dim = dimensions(mesh)
-  bb = Array{Cdouble}(2,dim)
+  bb = Array{Cdouble}(undef, 2,dim)
 
   icxx"""
     double *jptr = $(pointer(bb));

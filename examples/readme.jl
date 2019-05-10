@@ -1,5 +1,5 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # This example contains a listing of the source code given in the first example
 # of the README.md package documentation
