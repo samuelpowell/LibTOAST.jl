@@ -1,5 +1,5 @@
 using libTOAST
-using Base.Test
+using Test
 
 # Get some test data from the Toast++ source distribution
 meshdir_2D = joinpath(libTOAST._jl_toast_dir, "test", "2D", "meshes")
