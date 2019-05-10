@@ -59,6 +59,16 @@ run(`rm -rf $(joinpath(prefix, osroot * "64"))`)
 rm(joinpath(prefix, dlfile))
 rm(joinpath(prefix, srcfile))
 
+# Set rpath on linux
+if Sys.islinux()
+  libroot = joinpath(prefix, "toastpp-" * toastn, "linux64", "lib")
+  libs = filter(x-> occursin(".so", x), readdir())
+  for lib in libs
+    run(`patchelf --set-rpath $libroot $(joinpath(libroot, lib))`)
+    @info "Patched rpath for library $lib"
+  end
+end
+
 # Write path
 @info "Storing Toast++ installation path"
 libprefix = joinpath(prefix, "toastpp-" * toastn, osroot * "64", "lib");
