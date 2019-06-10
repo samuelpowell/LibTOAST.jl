@@ -1,4 +1,5 @@
 using libTOAST
+using LinearAlgebra
 using Test
 
 # Get some test data from the Toast++ source distribution
@@ -16,7 +17,7 @@ meshdir_3D = joinpath(libTOAST._jl_toast_dir, "test", "3D", "meshes")
   include("sysmat.jl")
   include("assembly.jl")
   include("raster.jl")
-  include("coefftypes.jl")
+  #include("coefftypes.jl")
   include("regul.jl")
 
 end
