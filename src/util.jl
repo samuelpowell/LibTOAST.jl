@@ -60,6 +60,6 @@ function _CSR0_to_CSC1(m,n,rowptr,colidx,values::Ptr)
   """
 
   # Build sparse with 1-based indexing and Int size pointers
-  return SparseMatrixCSC(n,m,Vector{Int}(colptr+1),Vector{Int}(rowidx+1),cscval)
+  return SparseMatrixCSC(n,m,Vector{Int}(colptr.+1),Vector{Int}(rowidx.+1),cscval)
 
 end
