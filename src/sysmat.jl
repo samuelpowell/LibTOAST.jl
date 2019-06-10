@@ -21,7 +21,7 @@ mutable struct SystemMatrix
 
     sysmat = new(matptr, mesh)
 
-    finalizer(sysmat, _sysmat_delete)
+    finalizer(_sysmat_delete, sysmat)
 
     return sysmat
 
