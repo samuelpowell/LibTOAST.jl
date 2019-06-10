@@ -242,8 +242,8 @@ function _load!(ptr::Cxx.CxxCore.CppPtr, fn::String)
 
   # Load the mesh
   icxx"""
-    ifstream ifs($fn);
-    ifs >> *($ptr);
+    ifstream ifs($(pointer(fn)));
+    ifs >> *($(ptr));
     ifs.close();
   """
 
