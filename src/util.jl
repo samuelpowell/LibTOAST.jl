@@ -17,9 +17,9 @@ function _CSR0_to_CSC1(m,n,rowptr,colidx,values::Ptr)
   # void CopyMatrix (mxArray **array, const RCompRowMatrix &mat)
 
   # Array of pointers to row index, column pointer, real pointer
-  cscval = Array{Float64}(length(colidx))
-  rowidx = Array{Cint}(length(colidx))
-  colptr = Array{Cint}(n+1)
+  cscval = Array{Float64}(undef, length(colidx))
+  rowidx = Array{Cint}(undef, length(colidx))
+  colptr = Array{Cint}(undef, n+1)
 
   icxx"""
     int i, j, k;

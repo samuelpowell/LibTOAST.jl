@@ -440,7 +440,7 @@ function gradient(coeff::IntermediateCoeff)
   rptr = coeff.rast.ptr
   coptr = pointer(coeff.data)
 
-  ∇coeff = Array{Float64}(len, ndim)
+  ∇coeff = Array{Float64}(undef, len, ndim)
   gcoptr = pointer(∇coeff)
 
   icxx"""
@@ -482,7 +482,7 @@ function gradient(coeff::IntermediateCoeff{Complex{Float64}})
   rcoptr = pointer(rcoeff)
   icoptr = pointer(icoeff)
 
-  ∇coeff = Array{Float64}(len*2, ndim)
+  ∇coeff = Array{Float64}(undef, len*2, ndim)
   gcoptr = pointer(∇coeff)
 
   icxx"""
