@@ -1,5 +1,5 @@
-# libTOAST.jl: interface to the TOAST++ library
-# Copyright (C) 2017 Samuel Powell
+# LibTOAST.jl: interface to the TOAST++ library
+# Copyright (C) 2019 Samuel Powell
 
 # Imports
 import Base: string, print, show
@@ -388,56 +388,53 @@ function surface(mesh::Mesh)
   nbnd = icxx"""$(meshptr)->nlist.NumberOf(BND_ANY);"""
 
   vtx = Array{Float64}(undef, nbnd, ndim)
-  vtxptr = pointer(vtx)
 
   icxx"""
     for (int i = 0; i < $(ndim); i++)
       for (int j = 0; j < $(nlen); j++)
         if ($(meshptr)->nlist[j].isBnd())
-          *$(vtxptr)++ = $(meshptr)->nlist[j][i];
+          *$(pointer(vtx))++ = $(meshptr)->nlist[j][i];
   """
 
-  bndidx = Array{Cint}(undef, nlen)
-  bndidxptr = pointer(bndidx)
 
-  flen = Vector{Cint}(undef, 2)
-  nndptr = pointer(flen,1)
-  nfaceptr = pointer(flen,2)
+  bndidx = Array{Cint}(undef, nlen)
+  nnd = [Cint(0)] 
+  nface = [Cint(0)]
 
   icxx"""
     int  *bndellist, *bndsdlist;
 
     for (int j = 0, k = 0; j < $(nlen); j++)
-      $(bndidxptr)[j] = ($(meshptr)->nlist[j].isBnd() ? k++ : -1);
+      $(pointer(bndidx))[j] = ($(meshptr)->nlist[j].isBnd() ? k++ : -1);
 
     // NB: This assumes all elements contain the same number of vertices
-    *$(nndptr) = 0;
-    *$(nfaceptr) = $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
-    for (int j = 0; j < *$(nfaceptr); j++)
-      *$(nndptr) = ::max (*$(nndptr), $(meshptr)->elist[bndellist[j]]->nSideNode(bndsdlist[j]));
+    *$(pointer(nnd)) = 0;
+    *$(pointer(nface)) = $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
+    for (int j = 0; j < *$(pointer(nface)); j++)
+      *$(pointer(nnd)) = ::max (*$(pointer(nnd)), $(meshptr)->elist[bndellist[j]]->nSideNode(bndsdlist[j]));
 
     delete[] bndellist;
     delete[] bndsdlist;
   """
 
-  idx = Array{Cint}(undef, flen[1], flen[2])
-  idxptr = pointer(idx)
+  idx = Array{Cint}(undef, nnd[1], nface[1])
+
 
   icxx"""
     int sd, nn, nd, bn, *bndellist, *bndsdlist;
 
     $(meshptr)->BoundaryList (&bndellist, &bndsdlist);
 
-    for (int i = 0; i < *$(nndptr); i++)
-      for (int j = 0; j < *$(nfaceptr); j++) {
+    for (int i = 0; i < *$(pointer(nnd)); i++)
+      for (int j = 0; j < *$(pointer(nface)); j++) {
         Element *pel = $(meshptr)->elist[bndellist[j]];
         sd = bndsdlist[j];
         nn = pel->nSideNode (sd);
         if (i < nn) {
           nd = pel->Node[pel->SideNode (sd, i)];
-          bn = $(bndidxptr)[nd]+1;
+          bn = $(pointer(bndidx))[nd]+1;
         } else bn = 0;
-        *$(idxptr)++ = bn;
+        *$(pointer(idx))++ = bn;
       }
   """
 
