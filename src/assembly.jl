@@ -92,7 +92,7 @@ mutable struct PointSource <: Source
                        centre::Vector{Float64},
                        sourcetype::SourceTypes=Isotropic)
 
-    assert(length(centre) == dimensions(mesh))
+    @assert length(centre) == dimensions(mesh)
     return new(mesh, centre, sourcetype)
 
   end
@@ -122,7 +122,7 @@ mutable struct GaussianSource <: Source
                           width::Float64,
                           sourcetype::SourceTypes)
 
-    assert(length(centre) == dimensions(mesh))
+    @assert length(centre) == dimensions(mesh)
     return new(mesh, centre, width, sourcetype)
 
   end
@@ -193,7 +193,7 @@ function assemble!(sysmat::SystemMatrix,
                    int::BilinearParamIntegrals,
                    param::NodalCoeff)
 
-  assert(param.mesh == sysmat.mesh)
+  @assert param.mesh == sysmat.mesh
 
   nprm = length(param)
   pprm = pointer(param.data)
@@ -245,7 +245,7 @@ function assemble!(rhs::NodalCoeff,
                    int::LinearParamIntegrals,
                    param::NodalCoeff)
 
-  assert(param.mesh == rhs.mesh)
+  @assert param.mesh == rhs.mesh
 
   nprm = length(param)
   pprm = pointer(param.data)

@@ -5,10 +5,11 @@ __precompile__(false)
 
 module libTOAST
 
+using SparseArrays
+using LinearAlgebra
+using Libdl
 using Compat
 using Cxx
-using SparseArrays
-using Libdl
 
 # Set verbosity, provide info function
 verbose = true

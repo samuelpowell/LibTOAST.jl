@@ -2,7 +2,7 @@
 # Copyright (C) 2019 Samuel Powell
 
 # Import
-import Base: convert, size, getindex, setindex!, zero, similar, zero, one, fill, \, gradient
+import Base: convert, size, getindex, setindex!, zero, similar, zero, one, fill, \
 
 # Export types
 export RasterBases, NodalCoeff, SolutionCoeff, RasterCoeff, IntermediateCoeff
@@ -29,7 +29,7 @@ mutable struct NodalCoeff{T} <: AbstractArray{T, 1}
   mesh::Mesh
   data::Vector{T}
   function NodalCoeff(mesh::Mesh, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == nodecount(mesh))
+    @assert length(data) == nodecount(mesh)
     return new{T}(mesh,data)
   end
 end
@@ -116,7 +116,7 @@ mutable struct SolutionCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{T}
   function SolutionCoeff(rast::Raster, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == slen(rast))
+    @assert length(data) == slen(rast)
     return new{T}(rast,data)
   end
 end
@@ -153,7 +153,7 @@ mutable struct RasterCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{Float64}
   function RasterCoeff(rast::Raster, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == blen(rast))
+    @assert length(data) == blen(rast)
     return new{T}(rast,data)
   end
 end
@@ -183,7 +183,7 @@ mutable struct IntermediateCoeff{T} <: RasterCoeffTypes{T}
   rast::Raster
   data::Vector{T}
   function IntermediateCoeff(rast::Raster, data::Vector{T}) where {T<:Reltypes}
-    assert(length(data) == glen(rast))
+    @assert length(data) == glen(rast)
     return new{T}(rast,data)
   end
 end

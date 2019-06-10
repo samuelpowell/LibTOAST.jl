@@ -2,10 +2,10 @@
 # Copyright (C) 2019 Samuel Powell
 
 # Imports
-import Base: sparse
+import SparseArrays: sparse
 
 # Export types
-export SystemMatrix
+export SystemMatrix, sparse
 
 mutable struct SystemMatrix
 

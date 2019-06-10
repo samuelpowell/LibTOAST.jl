@@ -48,7 +48,7 @@ mutable struct RegulTK0 <: Regul
     """
 
     regul = new(regulptr, rast)
-    finalizer(regul, _regul_delete)
+    finalizer(_regul_delete, regul)
     return regul
   end
 
