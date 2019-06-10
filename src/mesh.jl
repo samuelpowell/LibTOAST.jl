@@ -40,7 +40,7 @@ mutable struct Mesh
     rowptr, colidx = _sparsity!(ptr)
 
     mesh = new(ptr, rowptr, colidx)
-    finalizer(mesh, _mesh_delete)
+    finalizer(_mesh_delete, mesh)
 
     return mesh
 
@@ -99,11 +99,11 @@ function _sparsity!(ptr::Cxx.CxxCore.CppPtr)
 
   nnd = @cxx ptr->nlen()
 
-  _info("Number of vertices: ", nnd, ", number of nonzeros: ", nnzero[1])
+  _info("Number of vertices: $nnd, number of nonzeros: $(nnzero[1])")
 
   # Zero based rowptr and colidx, for resuse when building a system matrix
-  rowptr = unsafe_wrap(Array,rowptr[1],nnd+1,true)
-  colidx = unsafe_wrap(Array,colidx[1],nnzero[1],true)
+  rowptr = unsafe_wrap(Array, rowptr[1], nnd+1, own = true)
+  colidx = unsafe_wrap(Array, colidx[1], nnzero[1], own = true)
 
   return rowptr, colidx
 
@@ -234,6 +234,7 @@ function _load!(ptr::Cxx.CxxCore.CppPtr, fn::String)
   # ifs = @cxx std::ifstream(pointer(filename))
   # icxx"""$(ifs) >> *$(obj.meshptr);"""
 
+  # @show ptr
   # Check if file exists
   if !isfile(fn)
     error("File not found ", fn)
@@ -241,12 +242,12 @@ function _load!(ptr::Cxx.CxxCore.CppPtr, fn::String)
 
   # Load the mesh
   icxx"""
-    ifstream ifs($(pointer(fn)));
-    ifs >> *($(ptr));
+    ifstream ifs($fn);
+    ifs >> *($ptr);
     ifs.close();
   """
 
-  _info("Loaded ", stat(fn).size, " bytes from ", fn, ".")
+  _info("Loaded $(stat(fn).size) bytes from $(fn).")
 
   return
 
@@ -266,7 +267,7 @@ function save(mesh::Mesh, fn::String)
     ofs.close();
   """
 
-  _info("Mesh written to ", fn, ", ", stat(fn).size, "bytes.")
+  _info("Mesh written to $(fn), $(stat(fn).size) bytes.")
 
   return nothing
 
@@ -326,19 +327,26 @@ function data(mesh::Mesh)
 
   ndim = dimensions(mesh)
   nvtx = nodecount(mesh)
-  vtx = Array{Float64}(nvtx, ndim)
+  vtx = Array{Float64,2}(undef, nvtx, ndim)
   vtxptr = pointer(vtx)
+
+  # for i in 0:(ndim-1), j in 0:(nvtx-1)
+  #   icxx"""
+  #     *$(vtxptr)++ = $(meshptr)->nlist[$j][$i];
+  #     """
+  # end
+
 
   icxx"""
     // vertex coordinate list
     for (int i = 0; i < $ndim; i++)
-        for (int j = 0; j < $nvtx; j++)
+      for (int j = 0; j < $nvtx; j++)
             *$(vtxptr)++ = $(meshptr)->nlist[j][i];
   """
 
   mnnd = maxnodes(mesh)
   nele = elemcount(mesh)
-  ele = Array{Cint}(nele, mnnd)
+  ele = Array{Cint}(undef, nele, mnnd)
   eleptr = pointer(ele)
 
   icxx"""
@@ -352,7 +360,7 @@ function data(mesh::Mesh)
                 *$(eleptr)++ = 0;
   """
 
-  elt = Vector{Cint}(nele)
+  elt = Vector{Cint}(undef, nele)
   eltptr = pointer(elt)
 
   icxx"""
@@ -379,7 +387,7 @@ function surface(mesh::Mesh)
   ndim = dimensions(mesh)
   nbnd = icxx"""$(meshptr)->nlist.NumberOf(BND_ANY);"""
 
-  vtx = Array{Float64}(nbnd, ndim)
+  vtx = Array{Float64}(undef, nbnd, ndim)
   vtxptr = pointer(vtx)
 
   icxx"""
@@ -389,10 +397,10 @@ function surface(mesh::Mesh)
           *$(vtxptr)++ = $(meshptr)->nlist[j][i];
   """
 
-  bndidx = Array{Cint}(nlen)
+  bndidx = Array{Cint}(undef, nlen)
   bndidxptr = pointer(bndidx)
 
-  flen = Vector{Cint}(2)
+  flen = Vector{Cint}(undef, 2)
   nndptr = pointer(flen,1)
   nfaceptr = pointer(flen,2)
 
@@ -412,7 +420,7 @@ function surface(mesh::Mesh)
     delete[] bndsdlist;
   """
 
-  idx = Array{Cint}(flen[1], flen[2])
+  idx = Array{Cint}(undef, flen[1], flen[2])
   idxptr = pointer(idx)
 
   icxx"""
@@ -445,7 +453,7 @@ Return the bounding box of the mesh in a ``2 \times dim`` matrix.
 function boundingbox(mesh::Mesh)
 
   dim = dimensions(mesh)
-  bb = Array{Cdouble}(2,dim)
+  bb = Array{Cdouble}(undef, 2,dim)
 
   icxx"""
     double *jptr = $(pointer(bb));
