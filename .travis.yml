@@ -17,6 +17,7 @@ addons:
   apt:
     packages:
     - patchelf
+    - libgfortran3
 notifications:
   email: false
 after_success:
