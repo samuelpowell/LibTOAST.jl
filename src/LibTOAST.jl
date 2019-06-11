@@ -3,7 +3,7 @@ __precompile__(false)
 # LibTOAST.jl: interface to the TOAST++ library
 # Copyright (C) 2019 Samuel Powell
 
-module libTOAST
+module LibTOAST
 
 using SparseArrays
 using LinearAlgebra

@@ -5,13 +5,13 @@
 
   # Construct an empty system matrix, make sure its empty
   S = SystemMatrix(mesh2D)
-  @test libTOAST.ncols(S) == 3511
-  @test libTOAST.nrows(S) == 3511
+  @test LibTOAST.ncols(S) == 3511
+  @test LibTOAST.nrows(S) == 3511
 
   nvals = length(S.mesh.colidx)
   @test nvals == 24211
 
-  sysmatvals = unsafe_wrap(Array,libTOAST.valptr(S), nvals )
+  sysmatvals = unsafe_wrap(Array,LibTOAST.valptr(S), nvals )
   @test all(sysmatvals .== 0)
 
   # Do some matrix assembly and make sure it comes out the same

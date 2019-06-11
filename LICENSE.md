@@ -1,4 +1,4 @@
-The libTOAST.jl package is licensed under the MIT "Expat" License:
+The LibTOAST.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2017: Samuel Powell.
 > 

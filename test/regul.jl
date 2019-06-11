@@ -27,8 +27,8 @@
     @test val(reg, rc) == 0
     @test val(reg, r0) ≈ norm(rc.data)^2
 
-    @test norm(libTOAST.grad(reg,rc)) == 0
-    @test norm(libTOAST.grad(reg, r0)) ≈ 2*norm(rc)
+    @test norm(LibTOAST.grad(reg,rc)) == 0
+    @test norm(LibTOAST.grad(reg, r0)) ≈ 2*norm(rc)
 
   end
 
