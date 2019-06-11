@@ -4,15 +4,18 @@ os:
   - linux
   - osx
 julia:
-  - 0.7
-  - 1.0
   - 1.1
+  - 1.2
   - nightly
 matrix:
   allow_failures:
     - julia: nightly
     - os: linux
   fast_finish: true
+addons:
+  apt:
+    packages:
+    - patchelf
 notifications:
   email: false
 after_success:
