@@ -24,14 +24,14 @@ LibTOAST.jl directly calls the underlying C++ library using [Cxx.jl](https://git
 
 Ensure that you have a working Cxx.jl installation, then install and build LibTOAST.jl package as follows. Installation on Linux requires that you have the `patchelf` utility installed.
 
-```
+```julia
 julia> ] add git@github.com:samuelpowell/LibTOAST.jl.git
 julia> ] build LibTOAST
-
+```
 
 The LibTOAST.jl build process will download the requisite binaries and the header files required to call the library, these are stored in the package directory. You can test that LibTOAST.jl is properly configured by running the unit tests.
 
-```
+```julia
 julia> ] test LibTOAST
 ```
 
@@ -89,7 +89,7 @@ Items (1) - (4) are typically performed by hand. The core utility of the finite-
 
 To begin, load the TOAST module.
 
-```
+```julia
 julia> using TOAST
 Default thread count set to 8
 ```
@@ -100,7 +100,7 @@ The TOAST++ backend reports that it has initialised a pool of eight threads in w
 
 In this example we will define the domain by loading a mesh from a file.
 
-```
+```julia
 julia> meshdir = joinpath(LibTOAST._jl_toast_dir, "test", "2D", "meshes")
 
 julia> mesh = Mesh(joinpath(meshdir, "circle25_32.msh"));
@@ -120,7 +120,7 @@ There are three parameters in the problem, κ(r), μ(r), and γ(r). We directly 
 
 Functions in nodal basis are represented in `NodalCoeff` types, which hold a reference to the `mesh`.
 
-```
+```julia
 julia> μ = fill(NodalCoeff, mesh, 0.01);
 julia> κ = fill(NodalCoeff, mesh, 0.3);
 julia> γ = fill(NodalCoeff, mesh, 0.5);
@@ -130,7 +130,7 @@ julia> γ = fill(NodalCoeff, mesh, 0.5);
 
 To build the system matrix we first instantiate a `SystemMatrix`
 
-```
+```julia
 julia> S = SystemMatrix(mesh)
 ```
 
@@ -138,7 +138,7 @@ which is a thin wrapper around a compressed sparse row (CSR) matrix used by TOAS
 
 We now assemble and add each of the components to the system matrix.
 
-```
+```julia
 julia> assemble!(S, PDD, κ);
 julia> assemble!(S, PFF, μ);
 julia> assemble!(S, BNDPFF, γ);
@@ -148,7 +148,7 @@ The second input to the `assemble!` method defines the integral to be performed.
 
 When we are finally ready to use the system matrix in Julia, we can do so as follows.
 
-```
+```julia
 sysmat = sparse(S)
 ```
 
@@ -156,7 +156,7 @@ sysmat = sparse(S)
 
 Equipped with a system matrix describing the discrete form of the PDE we can solve the system against an arbitrary source term (right hand side). In general, one may build arbitrary source terms using the general-purpose assembly routines. In this case, however, we choose to solve against a point source located at the centre of the domain. For this purposes LibTOAST.jl exposes a specific type and special-purpose method `assemble` method,
 
-```
+```julia
 julia> source = PointSource(mesh, [0.,0.], Isotropic)
 julia> Q = assemble(source)
 ```
@@ -167,13 +167,13 @@ which builds a source vector representing an isotropic unitary point source cent
 
 The resultant system of equations can be solved using your method of preference. For example, we can simply rely upon Julia's backslash operator to determine the properties of the system matrix and undertake a suitable direct solve.
 
-```
+```julia
 julia> ϕ = sparse(S)\Q
 ```
 
 If you have a working installation of PyPlot, you can easily visualise the results by extracting the vertices from the mesh and plotting the triangulation.
 
-```
+```julia
 julia> using PyPlot
 julia> vtx, = data(mesh);
 julia> plot_trisurf(vtx[:,1], vtx[:,2], ϕ)
@@ -192,7 +192,7 @@ Meshes can be specified by supplying two parameters:
 
 For example, suppose `vtx` is a number-of-vertices x 3 matrix of vertices, and `ele` is a number-of-elements x 4 matrix defining the element connectivity, then we may construct a mesh of tetrahedral elements as follows.
 
-```
+```julia
 mesh = Mesh(vtx, ele)
 ```
 
@@ -263,13 +263,13 @@ A raster provides three bases, and LibTOAST.jl expresses these in three subtypes
 
 To construct a raster of pixels over a given `mesh`
 
-```
+```julia
 julia> raster = Raster(mesh, Pixel)
 ```
 
 One may then map a function `fm` defined on the mesh (as a `NodalCoeff` type) to the various raster bases
 
-```
+```julia
 julia> fr = RasterCoeff(raster, fm)
 julia> fs = SolutionCoeff(raster, fm)
 julia> fc = IntermediateCoeff(raster, fm)
@@ -277,13 +277,13 @@ julia> fc = IntermediateCoeff(raster, fm)
 
 and back again
 
-```
+```julia
 julia> fm = NodalCoeff(fr)
 ```
 
 Alternatively, one may map in-place
 
-```
+```julia
 julia> fr = RasterCoeff(raster)
 julia> map!(fr, fm)
 julia> map!(fm, fr)
@@ -302,7 +302,7 @@ TOAST++ provides the functionality to calculate the value, gradient and Hessian 
 
 The functionals are initialised with a baseline parameter in the solution basis of a raster, e.g.,
 
-```
+```julia
 julia> reg = Regularisation(TK0, x0)
 ```
 
